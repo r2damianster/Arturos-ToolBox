@@ -1,0 +1,77 @@
+<div class="container" style="max-width:800px;">
+    <h1>📉 Informe de Notas Menores</h1>
+
+    <form action="{{ url_for('reportes.generate_report') }}" method="POST" enctype="multipart/form-data">
+        <fieldset>
+            <legend>Configuración del Informe</legend>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                    <label>Parcial:</label>
+                    <select name="parcial_seleccionado" required>
+                        <option value="1">PRIMER PARCIAL (Nota &lt; 7.00)</option>
+                        <option value="2">SEGUNDO PARCIAL (Nota &lt; 14.00)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Fecha del Informe:</label>
+                    <input type="date" name="fecha" required>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label>Facultad / Extensión:</label>
+                    <input type="text" name="facultad_extension_destinatario"
+                           value="FACULTAD DE EDUCACIÓN, TURISMO, ARTES Y HUMANIDADES" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Destinatario (Subdecano/a)</legend>
+            <div style="display:grid;grid-template-columns:100px 1fr;gap:12px;align-items:end;">
+                <div>
+                    <label>Título:</label>
+                    <input type="text" name="titulo_academico_destinatario" placeholder="Ej: Mg." required>
+                </div>
+                <div>
+                    <label>Nombres y Apellidos:</label>
+                    <input type="text" name="nombres_apellidos_destinatario" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Emisor (Docente)</legend>
+            <div style="display:grid;grid-template-columns:100px 1fr;gap:12px;align-items:end;">
+                <div>
+                    <label>Título:</label>
+                    <input type="text" name="titulo_academico_emisor" required>
+                </div>
+                <div>
+                    <label>Nombres y Apellidos:</label>
+                    <input type="text" name="nombres_apellidos_emisor" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Copia a (Director/a de Carrera)</legend>
+            <div style="display:grid;grid-template-columns:100px 1fr;gap:12px;align-items:end;">
+                <div>
+                    <label>Título:</label>
+                    <input type="text" name="titulo_academico_cc" placeholder="Ej: Mg." required>
+                </div>
+                <div>
+                    <label>Nombres y Apellidos:</label>
+                    <input type="text" name="nombres_apellidos_cc" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Archivo Excel de Notas</legend>
+            <span class="help-text">El nombre del archivo debe incluir el nombre de la asignatura (formato: XX--Asignatura--XX).</span>
+            <input type="file" name="excel_file" accept=".xlsx" required style="margin-top:8px;">
+        </fieldset>
+
+        <button type="submit" class="submit-btn">🚀 Generar Informe</button>
+    </form>
+</div>

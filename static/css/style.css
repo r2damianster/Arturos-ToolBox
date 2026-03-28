@@ -12,7 +12,7 @@ body {
    BARRA LATERAL
 =========================== */
 .sidebar {
-    width: 220px;
+    width: 230px;
     background-color: #1e293b;
     color: white;
     height: 100vh;
@@ -23,24 +23,55 @@ body {
 
 .sidebar h2 {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     font-size: 1.1em;
     font-weight: bold;
     padding: 0 10px;
 }
 
-.sidebar button {
-    display: block;
+/* Cabecera de grupo (botón colapsable) */
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     width: 90%;
-    margin: 6px auto;
-    padding: 11px 12px;
+    margin: 4px auto 0;
+    padding: 9px 12px;
     border: none;
     border-radius: 6px;
+    background-color: #0f172a;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 0.78em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    transition: background 0.2s;
+}
+.sb-group-header:hover { background-color: #1e3a5f; color: #e2e8f0; }
+.sb-group-header.sb-group-active { color: #e2e8f0; }
+.sb-group-header .sb-arrow { transition: transform 0.2s; font-size: 0.8em; }
+.sb-group-header.sb-group-active .sb-arrow { transform: rotate(90deg); }
+
+/* Items dentro del grupo */
+.sb-group-items {
+    display: none;
+    padding-bottom: 4px;
+}
+.sb-group-items.sb-group-open { display: block; }
+
+.sidebar button {
+    display: block;
+    width: 86%;
+    margin: 3px auto 3px 22px;
+    padding: 9px 12px;
+    border: none;
+    border-radius: 5px;
     background-color: #334155;
     color: white;
     cursor: pointer;
     text-align: left;
-    font-size: 0.9em;
+    font-size: 0.87em;
     transition: background 0.2s ease;
 }
 
@@ -52,7 +83,7 @@ body {
    CONTENIDO PRINCIPAL
 =========================== */
 .main-content {
-    margin-left: 220px;
+    margin-left: 230px;
     padding: 30px;
     width: 100%;
 }

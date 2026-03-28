@@ -8,3 +8,7 @@ fpdf==1.7.2
 gunicorn==21.2.0
 numpy==1.26.4
 scipy==1.13.0
+python-docx==1.1.0
+docxtpl==0.16.7
+docxcompose==1.4.0
+groq

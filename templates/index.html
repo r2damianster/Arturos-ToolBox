@@ -1,16 +1,17 @@
 {% extends 'base.html' %}
 
-{% block title %}Caja de Utilidades{% endblock %}
+{% block title %}Arturo's ToolBox{% endblock %}
 
 {% block content %}
 
     <div id="bienvenida" class="content-section">
         <div class="container">
-            <h1>🧰 Caja de Utilidades</h1>
+            <h1>🧰 Arturo's ToolBox</h1>
             <p style="text-align:center; color:#666;">Selecciona una herramienta del menú lateral para comenzar.</p>
         </div>
     </div>
 
+    <!-- ── Herramientas ── -->
     <div id="util-csv-bib" class="content-section hidden">
         {% include 'components/_form_csv_bib.html' %}
     </div>
@@ -31,10 +32,6 @@
         {% include 'components/_form_copiar_archivos.html' %}
     </div>
 
-    <div id="util-crear-archivos" class="content-section hidden">
-        {% include 'components/_form_crear_archivos.html' %}
-    </div>
-
     <div id="util-crear-carpetas" class="content-section hidden">
         {% include 'components/_form_crear_carpetas.html' %}
     </div>
@@ -47,8 +44,30 @@
         {% include 'components/_form_reducir_imagenes.html' %}
     </div>
 
+    <!-- ── Research Tools ── -->
+    <div id="util-crear-archivos" class="content-section hidden">
+        {% include 'components/_form_crear_archivos.html' %}
+    </div>
+
     <div id="util-pretest" class="content-section hidden">
         {% include 'components/_form_pretest_posttest.html' %}
+    </div>
+
+    <!-- ── ARTeacher Docs ── -->
+    <div id="util-acta-tecnica" class="content-section hidden">
+        {% include 'components/_form_acta_tecnica.html' %}
+    </div>
+
+    <div id="util-conv-docentes" class="content-section hidden">
+        {% include 'components/_form_convocatoria_docentes.html' %}
+    </div>
+
+    <div id="util-conv-estudiantes" class="content-section hidden">
+        {% include 'components/_form_convocatoria_estudiantes.html' %}
+    </div>
+
+    <div id="util-informe-notas" class="content-section hidden">
+        {% include 'components/_form_informe_notas.html' %}
     </div>
 
 {% endblock %}

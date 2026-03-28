@@ -1,0 +1,75 @@
+<div class="container" style="max-width:900px;">
+    <h1>📝 Acta Técnica con IA</h1>
+
+    <form action="{{ url_for('actas.generar_acta_tecnica') }}" method="POST">
+        <fieldset>
+            <legend>1. Información General</legend>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                    <label>N° Acta:</label>
+                    <input type="text" name="num_acta" placeholder="Ej: DCPLL-004-2025" required>
+                </div>
+                <div>
+                    <label>Fecha:</label>
+                    <input type="date" name="fecha_reunion" required>
+                </div>
+                <div>
+                    <label>Lugar:</label>
+                    <input type="text" name="lugar_reunion" placeholder="Ej: Aula 102" required>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <div>
+                        <label>Hora inicio:</label>
+                        <input type="time" name="hora_inicio" required>
+                    </div>
+                    <div>
+                        <label>Hora fin:</label>
+                        <input type="time" name="hora_fin" required>
+                    </div>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label>Convocado por (Nombre, Cargo):</label>
+                    <input type="text" name="convocante" placeholder="Ej: Mg. López, Director de Carrera" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>2. Participantes</legend>
+            <div id="lista-participantes">
+                <div class="participante-row" style="display:flex;gap:10px;margin-bottom:10px;">
+                    <input type="text" name="p_titulo[]"   placeholder="Título" style="width:90px;">
+                    <input type="text" name="p_nombre[]"   placeholder="Nombre"   required>
+                    <input type="text" name="p_apellido[]" placeholder="Apellido" required>
+                </div>
+            </div>
+            <button type="button" id="add-participante" class="submit-btn"
+                style="background:#e2e8f0;color:#1e293b;margin-top:8px;font-size:0.85em;padding:8px 16px;">
+                + Añadir Participante
+            </button>
+        </fieldset>
+
+        <fieldset>
+            <legend>3. Notas para la IA</legend>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <div>
+                    <label>Puntos del orden del día:</label>
+                    <textarea name="notas_aspectos" rows="3"
+                        placeholder="Ej: Revisión de sílabos, planificación de recuperación, reporte de asistencia" required></textarea>
+                </div>
+                <div>
+                    <label>¿Qué sucedió en la reunión? (resumen breve):</label>
+                    <textarea name="notas_reunion" rows="4"
+                        placeholder="Ej: Se revisaron los sílabos de cada docente. Se discutió el cronograma de recuperación..." required></textarea>
+                </div>
+                <div>
+                    <label>Acuerdos y compromisos finales:</label>
+                    <textarea name="notas_compromisos" rows="3"
+                        placeholder="Ej: Entregar sílabos corregidos antes del viernes, publicar cronograma en plataforma" required></textarea>
+                </div>
+            </div>
+        </fieldset>
+
+        <button type="submit" class="submit-btn">🤖 Generar Acta con IA</button>
+    </form>
+</div>

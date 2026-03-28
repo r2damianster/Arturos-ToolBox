@@ -1,0 +1,82 @@
+<div class="container" style="max-width:800px;">
+    <h1>👨‍🏫 Convocatoria a Docentes</h1>
+
+    <form action="{{ url_for('convocatorias.convocatoria_docente') }}" method="POST">
+        <fieldset>
+            <legend>Identificación</legend>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                    <label>N.º Convocatoria:</label>
+                    <input type="text" name="num_convocatoria" placeholder="Ej: 001" required>
+                </div>
+                <div>
+                    <label>Periodo:</label>
+                    <select name="periodo" required>
+                        <option value="" disabled selected>Seleccione...</option>
+                        <option value="2026-1">2026-1</option>
+                        <option value="2026-2">2026-2</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Ciudad:</label>
+                    <input type="text" name="ciudad" value="Manta" required>
+                </div>
+                <div>
+                    <label>Fecha de Emisión:</label>
+                    <input type="date" onchange="convertirFechaLarga(this, 'fecha_larga_doc')" required>
+                    <input type="hidden" name="fecha_larga" id="fecha_larga_doc">
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Datos de la Reunión</legend>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div style="grid-column:1/-1;">
+                    <label>Asunto:</label>
+                    <input type="text" name="asunto" required>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label>Descripción:</label>
+                    <textarea name="descripcion_convocatoria" rows="3" required></textarea>
+                </div>
+                <div>
+                    <label>Fecha del Evento:</label>
+                    <input type="date" name="fecha_reunion" required>
+                </div>
+                <div>
+                    <label>Hora:</label>
+                    <input type="time" name="hora_reunion" required>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label>Lugar:</label>
+                    <input type="text" name="lugar_reunion" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Firma</legend>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                    <label>Título:</label>
+                    <input type="text" name="convocante_titulo" placeholder="Ej: Mg." required>
+                </div>
+                <div>
+                    <label>Nombre completo:</label>
+                    <input type="text" name="convocante_nombre" required>
+                </div>
+                <div>
+                    <label>Cargo:</label>
+                    <input type="text" name="convocante_cargo" required>
+                </div>
+                <div>
+                    <label>Iniciales elaborador:</label>
+                    <input type="text" name="iniciales_elaborador" placeholder="Ej: VVP/ddm" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <button type="submit" class="submit-btn">📄 Generar Convocatoria Docentes</button>
+    </form>
+</div>
