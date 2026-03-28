@@ -3,12 +3,14 @@ from routes.utilidades_routes import utilidades_bp
 from routes.actas_routes import actas_bp
 from routes.convocatorias_routes import convocatorias_bp
 from routes.reportes_routes import reportes_bp
+from routes.maestrias_routes import maestrias_bp
 
 app = Flask(__name__)
 app.register_blueprint(utilidades_bp)
 app.register_blueprint(actas_bp)
 app.register_blueprint(convocatorias_bp)
 app.register_blueprint(reportes_bp)
+app.register_blueprint(maestrias_bp)
 
 @app.route('/')
 def index():

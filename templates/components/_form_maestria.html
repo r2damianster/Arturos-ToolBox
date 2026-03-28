@@ -1,0 +1,61 @@
+<div class="container" style="max-width:800px;">
+    <h1>📦 Documentos PAT de Maestría</h1>
+
+    <form action="{{ url_for('maestrias.generar_pat_zip') }}" method="POST">
+        <fieldset>
+            <legend>Programa y Maestrante</legend>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div style="grid-column:1/-1;">
+                    <label>Maestría:</label>
+                    <select name="maestria_opcion" required>
+                        <option value="1">Lingüística y Literatura</option>
+                        <option value="2">Innovaciones Pedagógicas</option>
+                        <option value="3">Pedagogía de Idiomas (Inglés)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Nombre del Maestrante:</label>
+                    <input type="text" name="nombre_maestrante" placeholder="Nombres y apellidos completos" required>
+                </div>
+                <div>
+                    <label>Título del Trabajo / Artículo:</label>
+                    <input type="text" name="titulo_articulo" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Metodología</legend>
+            <label>Tipo de investigación (define los temas de sesión):</label>
+            <select name="metodologia_opcion" required>
+                <option value="1">Revisión Sistemática</option>
+                <option value="2">No Experimental</option>
+                <option value="3">Cuasi-Experimental</option>
+            </select>
+        </fieldset>
+
+        <fieldset>
+            <legend>Logística y Fechas</legend>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                    <label>N° Oficio recibido:</label>
+                    <input type="text" name="num_oficio" required>
+                </div>
+                <div>
+                    <label>Hora de inicio de sesión:</label>
+                    <input type="time" name="hora_inicio" value="16:00" required>
+                </div>
+                <div>
+                    <label>Fecha Sesión 9 (última):</label>
+                    <input type="date" name="fecha_sesion" required>
+                </div>
+                <div>
+                    <label>Fecha Designación del Tutor:</label>
+                    <input type="date" name="fecha_designacion" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <button type="submit" class="submit-btn">📦 Generar Paquete PAT (.zip)</button>
+    </form>
+</div>
