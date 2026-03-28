@@ -1,0 +1,45 @@
+<div class="container">
+    <h1>🔲 Generador de QR</h1>
+    <fieldset>
+        <legend>Contenido del QR</legend>
+        <label>Texto o URL:</label>
+        <input type="text" id="qr-texto" placeholder="https://ejemplo.com">
+        <button type="button" class="submit-btn" onclick="generarQR()">⚡ Generar QR</button>
+    </fieldset>
+
+    <div id="qr-resultado" style="display:none; text-align:center; margin-top:20px;">
+        <fieldset>
+            <legend>Resultado</legend>
+            <img id="qr-imagen" src="" alt="Código QR"
+                 style="max-width:280px; border:1px solid #ddd; padding:10px; border-radius:6px;">
+            <br><br>
+            <a id="qr-descarga" href="#" download="codigo_qr.png" class="submit-btn"
+               style="display:inline-block; width:auto; padding:12px 30px; text-decoration:none;">
+                ⬇️ Descargar PNG
+            </a>
+        </fieldset>
+    </div>
+    <p id="qr-error" style="display:none; color:red;"></p>
+</div>
+
+<script>
+function generarQR() {
+    const texto = document.getElementById('qr-texto').value.trim();
+    if (!texto) return;
+    const fd = new FormData();
+    fd.append('texto', texto);
+    fetch('/util/qr', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            const src = 'data:image/png;base64,' + data.imagen;
+            document.getElementById('qr-imagen').src = src;
+            document.getElementById('qr-descarga').href = src;
+            document.getElementById('qr-resultado').style.display = 'block';
+            document.getElementById('qr-error').style.display = 'none';
+        })
+        .catch(() => {
+            document.getElementById('qr-error').textContent = 'Error al generar el QR.';
+            document.getElementById('qr-error').style.display = 'block';
+        });
+}
+</script>

@@ -1,0 +1,14 @@
+<div class="container">
+    <h1>📄 Convertir a PDF</h1>
+    <form action="/util/convertir-pdf" method="post" enctype="multipart/form-data">
+        <fieldset>
+            <legend>Archivos de texto</legend>
+            <label>Selecciona los archivos (.txt, .csv, .py, .md, etc.):</label>
+            <input type="file" name="archivos" multiple required
+                   onchange="listarArchivos(this, 'lista-pdf', '📄')">
+            <span class="help-text">Cada archivo genera un PDF individual. Recibirás un ZIP con todos.</span>
+            <div id="lista-pdf"></div>
+        </fieldset>
+        <button type="submit" class="submit-btn">⬇️ Descargar ZIP de PDFs</button>
+    </form>
+</div>

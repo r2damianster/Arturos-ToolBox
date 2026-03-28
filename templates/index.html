@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Caja de Utilidades{% endblock %}
+
+{% block content %}
+
+    <div id="bienvenida" class="content-section">
+        <div class="container">
+            <h1>🧰 Caja de Utilidades</h1>
+            <p style="text-align:center; color:#666;">Selecciona una herramienta del menú lateral para comenzar.</p>
+        </div>
+    </div>
+
+    <div id="util-csv-bib" class="content-section hidden">
+        {% include 'components/_form_csv_bib.html' %}
+    </div>
+
+    <div id="util-qr" class="content-section hidden">
+        {% include 'components/_form_qr.html' %}
+    </div>
+
+    <div id="util-slides" class="content-section hidden">
+        {% include 'components/_form_slides.html' %}
+    </div>
+
+    <div id="util-unir-imagenes" class="content-section hidden">
+        {% include 'components/_form_unir_imagenes.html' %}
+    </div>
+
+    <div id="util-copiar-archivos" class="content-section hidden">
+        {% include 'components/_form_copiar_archivos.html' %}
+    </div>
+
+    <div id="util-crear-archivos" class="content-section hidden">
+        {% include 'components/_form_crear_archivos.html' %}
+    </div>
+
+    <div id="util-crear-carpetas" class="content-section hidden">
+        {% include 'components/_form_crear_carpetas.html' %}
+    </div>
+
+    <div id="util-convertir-pdf" class="content-section hidden">
+        {% include 'components/_form_convertir_pdf.html' %}
+    </div>
+
+    <div id="util-reducir-imagenes" class="content-section hidden">
+        {% include 'components/_form_reducir_imagenes.html' %}
+    </div>
+
+    <div id="util-pretest" class="content-section hidden">
+        {% include 'components/_form_pretest_posttest.html' %}
+    </div>
+
+{% endblock %}

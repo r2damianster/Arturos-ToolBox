@@ -1,0 +1,14 @@
+<div class="container">
+    <h1>📎 Unir Imágenes en PDF</h1>
+    <form action="/util/unir-imagenes" method="post" enctype="multipart/form-data">
+        <fieldset>
+            <legend>Imágenes</legend>
+            <label>Selecciona las imágenes (PNG, JPG, BMP, GIF):</label>
+            <input type="file" name="imagenes" accept=".png,.jpg,.jpeg,.bmp,.gif"
+                   multiple required onchange="listarArchivos(this, 'lista-unir', '🖼️')">
+            <span class="help-text">Se unirán en el orden en que las selecciones.</span>
+            <div id="lista-unir"></div>
+        </fieldset>
+        <button type="submit" class="submit-btn">⬇️ Descargar PDF</button>
+    </form>
+</div>

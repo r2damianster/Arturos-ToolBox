@@ -1,0 +1,500 @@
+<div class="container" style="max-width:1100px;">
+    <h1>📊 Análisis Pre-test / Post-test</h1>
+
+    <!-- FORMULARIO -->
+    <form id="form-pretest" onsubmit="calcularPretest(event)">
+        <fieldset>
+            <legend>Datos de entrada</legend>
+            <div class="pt-input-grid">
+                <div>
+                    <label>Valores Pre-test (separados por coma):</label>
+                    <input type="text" id="pretest-input"
+                           placeholder="Ej: 3, 4, 2, 5, 3, 4, 2" required>
+                </div>
+                <div>
+                    <label>Valores Post-test (separados por coma):</label>
+                    <input type="text" id="posttest-input"
+                           placeholder="Ej: 5, 5, 4, 5, 4, 5, 3" required>
+                </div>
+            </div>
+            <span class="help-text">Deben tener la misma cantidad de valores · Mínimo 5 pares.</span>
+        </fieldset>
+        <button type="submit" class="submit-btn">⚡ Calcular</button>
+    </form>
+
+    <p id="pretest-error" style="display:none;color:#dc2626;margin-top:12px;font-weight:600;"></p>
+
+    <!-- RESULTADOS -->
+    <div id="pretest-resultados" style="display:none; margin-top:28px;">
+
+        <!-- Resumen + Shapiro (ancho completo) -->
+        <div id="pt-resumen" class="pt-card pt-full" style="margin-bottom:16px;">
+            <div class="pt-card-title">📋 Resumen general</div>
+            <div class="pt-stats-row" style="flex-wrap:wrap; gap:10px;">
+                <div class="stat-card"><div class="stat-label">N</div><div class="stat-value" id="res-n">—</div></div>
+                <div class="stat-card"><div class="stat-label">Media Pre</div><div class="stat-value" id="res-media-pre">—</div></div>
+                <div class="stat-card"><div class="stat-label">Media Post</div><div class="stat-value" id="res-media-post">—</div></div>
+                <div class="stat-card"><div class="stat-label">Shapiro-Wilk W</div><div class="stat-value" id="res-sw-w">—</div></div>
+                <div class="stat-card"><div class="stat-label">Shapiro-Wilk p</div><div class="stat-value" id="res-sw-p">—</div></div>
+            </div>
+            <div id="recomendacion-badge" style="margin-top:12px; padding:10px 14px; border-radius:8px; font-size:0.9em;"></div>
+        </div>
+
+        <!-- Columnas principales -->
+        <div class="pt-cols">
+
+            <!-- ═══ COL IZQUIERDA: Wilcoxon ═══ -->
+            <div class="pt-card">
+                <div class="pt-card-title">🔬 Test de Wilcoxon Signed-Rank</div>
+
+                <div id="wilcoxon-badge" class="pt-sig-badge"></div>
+
+                <div class="pt-stats-grid">
+                    <div class="stat-card"><div class="stat-label">W (estadístico)</div><div class="stat-value" id="res-W">—</div></div>
+                    <div class="stat-card"><div class="stat-label">Z aproximado</div><div class="stat-value" id="res-z">—</div></div>
+                    <div class="stat-card"><div class="stat-label">p-value</div><div class="stat-value" id="res-p-w">—</div></div>
+                    <div class="stat-card"><div class="stat-label">Tamaño efecto (r)</div><div class="stat-value" id="res-r">—</div></div>
+                    <div class="stat-card"><div class="stat-label">N efectivo</div><div class="stat-value" id="res-n-eff">—</div></div>
+                    <div class="stat-card"><div class="stat-label">Empates</div><div class="stat-value" id="res-empates">—</div></div>
+                    <div class="stat-card"><div class="stat-label">Rangos (+)</div><div class="stat-value" id="res-rangos-pos">—</div></div>
+                    <div class="stat-card"><div class="stat-label">Rangos (−)</div><div class="stat-value" id="res-rangos-neg">—</div></div>
+                </div>
+
+                <!-- Gráfico densidad -->
+                <div style="margin-top:18px;">
+                    <canvas id="chart-densidad" height="200"></canvas>
+                </div>
+
+                <!-- Comentario interpretativo -->
+                <div id="comentario-wilcoxon" class="pt-comentario" style="margin-top:14px;"></div>
+            </div>
+
+            <!-- ═══ COL DERECHA: IC + t-Student ═══ -->
+            <div class="pt-card">
+                <div class="pt-card-title">📐 Intervalo de Confianza 95% · t de Student</div>
+
+                <div id="t-badge" class="pt-sig-badge"></div>
+
+                <div class="pt-stats-grid">
+                    <div class="stat-card"><div class="stat-label">t-value</div><div class="stat-value" id="res-t">—</div></div>
+                    <div class="stat-card"><div class="stat-label">p-value (t)</div><div class="stat-value" id="res-p-t">—</div></div>
+                    <div class="stat-card"><div class="stat-label">Grados libertad</div><div class="stat-value" id="res-gl">—</div></div>
+                    <div class="stat-card"><div class="stat-label">d de Cohen</div><div class="stat-value" id="res-cohen">—</div></div>
+                    <div class="stat-card"><div class="stat-label">Media diferencias</div><div class="stat-value" id="res-media-diff">—</div></div>
+                    <div class="stat-card"><div class="stat-label">Desv. estándar</div><div class="stat-value" id="res-sd">—</div></div>
+                    <div class="stat-card"><div class="stat-label">IC inferior</div><div class="stat-value" id="res-ic-inf">—</div></div>
+                    <div class="stat-card"><div class="stat-label">IC superior</div><div class="stat-value" id="res-ic-sup">—</div></div>
+                </div>
+
+                <!-- Gráfico IC -->
+                <div style="margin-top:18px;">
+                    <canvas id="chart-ic" height="200"></canvas>
+                </div>
+
+                <!-- Comentario interpretativo -->
+                <div id="comentario-t" class="pt-comentario" style="margin-top:14px;"></div>
+            </div>
+
+        </div><!-- /pt-cols -->
+    </div><!-- /pretest-resultados -->
+</div>
+
+<!-- ═══════════════ ESTILOS ═══════════════ -->
+<style>
+.pt-input-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+@media (max-width: 640px) {
+    .pt-input-grid { grid-template-columns: 1fr; }
+}
+
+.pt-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+@media (max-width: 768px) {
+    .pt-cols { grid-template-columns: 1fr; }
+}
+
+.pt-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.pt-full { grid-column: 1 / -1; }
+
+.pt-card-title {
+    font-size: 1em;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.pt-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.pt-stats-row { display: flex; }
+
+.stat-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+.stat-label {
+    font-size: 0.72em;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 3px;
+}
+.stat-value {
+    font-size: 1.05em;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.pt-sig-badge {
+    text-align: center;
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.88em;
+    margin-bottom: 12px;
+}
+
+.pt-comentario {
+    background: #f0f9ff;
+    border-left: 4px solid #0ea5e9;
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 0.85em;
+    color: #0c4a6e;
+    line-height: 1.5;
+}
+</style>
+
+<!-- ═══════════════ CHART.JS CDN ═══════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- ═══════════════ LÓGICA JS ═══════════════ -->
+<script>
+let chartDensidad = null;
+let chartIC = null;
+
+// Formatea p-values muy pequeños para no mostrar "0"
+function formatP(p) {
+    if (p === 0 || p < 0.0001) return '< 0.0001';
+    if (p < 0.001)  return p.toFixed(4);
+    return p.toFixed(4);
+}
+
+function calcularPretest(e) {
+    e.preventDefault();
+    const errDiv = document.getElementById('pretest-error');
+    errDiv.style.display = 'none';
+
+    const fd = new FormData();
+    fd.append('pretest',  document.getElementById('pretest-input').value);
+    fd.append('posttest', document.getElementById('posttest-input').value);
+
+    fetch('/util/pretest', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                errDiv.textContent = data.error;
+                errDiv.style.display = 'block';
+                document.getElementById('pretest-resultados').style.display = 'none';
+                return;
+            }
+            llenarResultados(data);
+            document.getElementById('pretest-resultados').style.display = 'block';
+        })
+        .catch(() => {
+            errDiv.textContent = 'Error al conectar con el servidor.';
+            errDiv.style.display = 'block';
+        });
+}
+
+function llenarResultados(d) {
+    const w  = d.wilcoxon;
+    const t  = d.t_student;
+    const ic = d.intervalo_confianza;
+    const sw = d.normalidad;
+
+    // ── Resumen ──
+    document.getElementById('res-n').textContent          = d.n;
+    document.getElementById('res-media-pre').textContent  = d.media_pre;
+    document.getElementById('res-media-post').textContent = d.media_post;
+    document.getElementById('res-sw-w').textContent       = sw.shapiro_W;
+    document.getElementById('res-sw-p').textContent       = sw.shapiro_p;
+
+    // Badge de recomendación
+    const recBadge = document.getElementById('recomendacion-badge');
+    const recTextos = {
+        'muestras_pequeñas': { txt: '⚠️ N < 10: muestra pequeña. Wilcoxon es válido pero interpreta con cautela. Aumentar la muestra mejora la fiabilidad.', bg:'#fef3c7', color:'#92400e' },
+        'wilcoxon':          { txt: '✅ Shapiro-Wilk p < 0.05: las diferencias NO son normales. Wilcoxon es el test adecuado.', bg:'#dcfce7', color:'#166534' },
+        't_student':         { txt: 'ℹ️ Shapiro-Wilk p ≥ 0.05: las diferencias son aproximadamente normales. La t de Student es el test más potente.', bg:'#dbeafe', color:'#1e40af' },
+    };
+    const rec = recTextos[sw.recomendacion];
+    recBadge.textContent       = rec.txt;
+    recBadge.style.background  = rec.bg;
+    recBadge.style.color       = rec.color;
+    recBadge.style.fontWeight  = '600';
+
+    // ── Wilcoxon ──
+    document.getElementById('res-W').textContent          = w.W;
+    document.getElementById('res-z').textContent          = w.z;
+    document.getElementById('res-p-w').textContent        = formatP(w.p_value);
+    document.getElementById('res-r').textContent          = `${w.effect_size_r} (${w.efecto_label})`;
+    document.getElementById('res-n-eff').textContent      = w.n_efectivo;
+    document.getElementById('res-empates').textContent    = w.empates;
+    document.getElementById('res-rangos-pos').textContent = w.rangos_pos;
+    document.getElementById('res-rangos-neg').textContent = w.rangos_neg;
+
+    const wBadge = document.getElementById('wilcoxon-badge');
+    wBadge.textContent       = w.significativo ? `✅ Diferencia significativa (p = ${formatP(w.p_value)})` : `⚠️ Sin diferencia significativa (p = ${formatP(w.p_value)})`;
+    wBadge.style.background  = w.significativo ? '#dcfce7' : '#fef9c3';
+    wBadge.style.color       = w.significativo ? '#166534' : '#854d0e';
+
+    document.getElementById('comentario-wilcoxon').innerHTML =
+        `<strong>Reglas de aplicación:</strong> datos pareados, escala al menos ordinal, N ≥ 10 recomendado (N efectivo = ${w.n_efectivo}).<br>
+         <strong>Interpretación:</strong> ${w.significativo
+            ? `p = ${formatP(w.p_value)} < 0.05 → se rechaza H₀. Existe diferencia significativa entre pre y post. Tamaño del efecto <em>r</em> = ${w.effect_size_r} (${w.efecto_label}).`
+            : `p = ${formatP(w.p_value)} ≥ 0.05 → no se rechaza H₀. No hay evidencia de diferencia significativa.`}`;
+
+    // ── T-Student ──
+    document.getElementById('res-t').textContent     = t.t_value;
+    document.getElementById('res-p-t').textContent   = formatP(t.p_value);
+    document.getElementById('res-gl').textContent    = t.gl;
+    document.getElementById('res-cohen').textContent = `${t.cohen_d} (${t.cohen_label})`;
+    document.getElementById('res-media-diff').textContent = ic.media_diferencia;
+    document.getElementById('res-sd').textContent         = ic.desviacion_std;
+    document.getElementById('res-ic-inf').textContent     = ic.ic_inferior;
+    document.getElementById('res-ic-sup').textContent     = ic.ic_superior;
+
+    const tNoAdecuada = sw.recomendacion !== 't_student';
+
+    const tBadge = document.getElementById('t-badge');
+    const sigTexto = t.significativo
+        ? `✅ Diferencia significativa (p = ${formatP(t.p_value)})`
+        : `⚠️ Sin diferencia significativa (p = ${formatP(t.p_value)})`;
+    if (tNoAdecuada) {
+        tBadge.innerHTML        = `⛔ Test no recomendado (datos no normales)<br><span style="font-size:0.85em;">${sigTexto} — solo referencial</span>`;
+        tBadge.style.background = '#fee2e2';
+        tBadge.style.color      = '#991b1b';
+    } else {
+        tBadge.textContent      = sigTexto;
+        tBadge.style.background = t.significativo ? '#dcfce7' : '#fef9c3';
+        tBadge.style.color      = t.significativo ? '#166534' : '#854d0e';
+    }
+
+    const advertenciaTNoAdecuada = tNoAdecuada
+        ? `<strong style="color:#991b1b;">⛔ Advertencia:</strong> La t de Student y el IC 95% asumen normalidad de las diferencias.
+           Shapiro-Wilk indica que esta condición <strong>no se cumple</strong> (p = ${sw.shapiro_p} < 0.05).
+           Los resultados se muestran solo como referencia — <strong>no deben usarse para conclusiones</strong>.
+           El test adecuado para estos datos es <strong>Wilcoxon</strong>.<br><br>`
+        : '';
+
+    document.getElementById('comentario-t').innerHTML =
+        advertenciaTNoAdecuada +
+        `<strong>Reglas de aplicación:</strong> t pareada asume normalidad de las diferencias (Shapiro-Wilk p = ${sw.shapiro_p}). IC 95% usa distribución t con ${t.gl} gl.<br>
+         <strong>Interpretación:</strong> ${t.significativo
+            ? `p = ${formatP(t.p_value)} < 0.05 → diferencia significativa. IC 95% = [${ic.ic_inferior}, ${ic.ic_superior}] (no incluye 0). d de Cohen = ${t.cohen_d} (efecto ${t.cohen_label}).`
+            : `p = ${formatP(t.p_value)} ≥ 0.05 → sin diferencia significativa. IC 95% = [${ic.ic_inferior}, ${ic.ic_superior}] (incluye 0).`}`;
+
+    // ── Gráficos ──
+    dibujarDensidad(d.datos_pre, d.datos_post);
+    dibujarIC(ic.ic_inferior, ic.ic_superior, ic.media_diferencia);
+}
+
+// ── KDE (Gaussian kernel) ────────────────────────────────────────────────
+function kde(values, bw, points) {
+    return points.map(x => {
+        const density = values.reduce((s, v) =>
+            s + Math.exp(-0.5 * ((x - v) / bw) ** 2) / (bw * Math.sqrt(2 * Math.PI)), 0) / values.length;
+        return density;
+    });
+}
+
+function linspace(min, max, n) {
+    const step = (max - min) / (n - 1);
+    return Array.from({ length: n }, (_, i) => min + i * step);
+}
+
+function dibujarDensidad(pre, post) {
+    const todos = [...pre, ...post];
+    const mn = Math.min(...todos) - 1;
+    const mx = Math.max(...todos) + 1;
+    const xs = linspace(mn, mx, 120);
+    const bw = 1.06 * Math.sqrt(todos.reduce((s, v) => s + (v - todos.reduce((a,b)=>a+b)/todos.length)**2, 0) / todos.length) * Math.pow(todos.length, -0.2);
+
+    const ctx = document.getElementById('chart-densidad').getContext('2d');
+    if (chartDensidad) chartDensidad.destroy();
+    chartDensidad = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: xs.map(x => x.toFixed(2)),
+            datasets: [
+                {
+                    label: 'Pre-test',
+                    data: kde(pre, bw || 0.5, xs),
+                    borderColor: '#f97316',
+                    backgroundColor: 'rgba(249,115,22,0.15)',
+                    fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2
+                },
+                {
+                    label: 'Post-test',
+                    data: kde(post, bw || 0.5, xs),
+                    borderColor: '#06b6d4',
+                    backgroundColor: 'rgba(6,182,212,0.15)',
+                    fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                title: { display: true, text: 'Distribución de densidad', font: { size: 13 } }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Valor' } },
+                y: { title: { display: true, text: 'Densidad' }, beginAtZero: true }
+            }
+        }
+    });
+}
+
+function dibujarIC(inf, sup, media) {
+    if (chartIC) { chartIC.destroy(); chartIC = null; }
+
+    const canvas = document.getElementById('chart-ic');
+    canvas.height = 320;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width || 320;
+    const H = 320;
+    ctx.clearRect(0, 0, W, H);
+
+    const padL = 62, padR = 90, padT = 50, padB = 44;
+    const plotH = H - padT - padB;
+    const cx    = padL + (W - padL - padR) / 2;
+
+    // Rango Y: forzamos padding generoso para que sup e inf no queden al borde
+    const allVals = [inf, sup, media, 0];
+    const rawMin  = Math.min(...allVals);
+    const rawMax  = Math.max(...allVals);
+    const span    = Math.max(rawMax - rawMin, 0.5);
+    const yMin    = rawMin - span * 0.55;
+    const yMax    = rawMax + span * 0.55;
+
+    const toY = v => padT + plotH * (1 - (v - yMin) / (yMax - yMin));
+
+    const yInf   = toY(inf);
+    const ySup   = toY(sup);
+    const yMedia = toY(media);
+    const y0     = toY(0);
+    const significant = inf > 0 || sup < 0;
+    const ciColor = significant ? '#0891b2' : '#d97706';
+    const ciBg    = significant ? 'rgba(6,182,212,0.13)' : 'rgba(217,119,6,0.13)';
+
+    // ── Título ──
+    ctx.font = 'bold 13px Arial';
+    ctx.fillStyle = '#1e293b';
+    ctx.textAlign = 'center';
+    ctx.fillText('Intervalo de Confianza 95%', padL + (W - padL - padR) / 2, 26);
+
+    // ── Cuadrícula y eje Y ──
+    ctx.font = '11px Arial';
+    ctx.fillStyle = '#64748b';
+    const nTicks = 6;
+    for (let i = 0; i <= nTicks; i++) {
+        const v = yMin + (yMax - yMin) * i / nTicks;
+        const y = toY(v);
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+        ctx.textAlign = 'right';
+        ctx.fillText(v.toFixed(2), padL - 6, y + 4);
+    }
+
+    // ── Línea H₀ = 0 ──
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(padL, y0); ctx.lineTo(W - padR, y0); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '10px Arial';
+    ctx.fillStyle = '#94a3b8';
+    ctx.textAlign = 'left';
+    ctx.fillText('H₀ = 0', W - padR + 4, y0 + 4);
+
+    // ── Banda sombreada ──
+    const bandW = 32;
+    ctx.fillStyle = ciBg;
+    ctx.fillRect(cx - bandW / 2, ySup, bandW, yInf - ySup);
+
+    // ── Línea vertical del IC ──
+    ctx.strokeStyle = ciColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx, ySup); ctx.lineTo(cx, yInf); ctx.stroke();
+
+    // ── Bigotes: cap superior e inferior bien visibles ──
+    const capW = 36;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = ciColor;
+
+    // Cap superior (sup)
+    ctx.beginPath(); ctx.moveTo(cx - capW/2, ySup); ctx.lineTo(cx + capW/2, ySup); ctx.stroke();
+    // Cap inferior (inf)
+    ctx.beginPath(); ctx.moveTo(cx - capW/2, yInf); ctx.lineTo(cx + capW/2, yInf); ctx.stroke();
+
+    // ── Etiquetas flotantes a la derecha de los caps ──
+    const lx = cx + capW / 2 + 6;
+    ctx.font = 'bold 11px Arial';
+    ctx.textAlign = 'left';
+
+    // Label sup
+    ctx.fillStyle = ciColor;
+    ctx.fillText(`▲ sup = ${sup}`, lx, ySup + 4);
+
+    // Label inf
+    ctx.fillStyle = ciColor;
+    ctx.fillText(`▼ inf = ${inf}`, lx, yInf + 4);
+
+    // ── Punto de la media ──
+    ctx.beginPath();
+    ctx.arc(cx, yMedia, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#1e293b';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Label media — a la izquierda para no solapar
+    ctx.font = 'bold 11px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#1e293b';
+    ctx.fillText(`μ = ${media}`, cx - capW / 2 - 6, yMedia + 4);
+
+    // ── Eje Y título ──
+    ctx.save();
+    ctx.translate(13, padT + plotH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.font = '11px Arial';
+    ctx.fillStyle = '#64748b';
+    ctx.textAlign = 'center';
+    ctx.fillText('Diferencia (Post − Pre)', 0, 0);
+    ctx.restore();
+}
+</script>

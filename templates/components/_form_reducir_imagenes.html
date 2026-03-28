@@ -1,0 +1,25 @@
+<div class="container">
+    <h1>🗜️ Reducir Imágenes</h1>
+    <form action="/util/reducir-imagenes" method="post" enctype="multipart/form-data">
+        <fieldset>
+            <legend>Imágenes</legend>
+            <label>Selecciona las imágenes (PNG, JPG, BMP):</label>
+            <input type="file" name="imagenes" accept=".png,.jpg,.jpeg,.bmp"
+                   multiple required onchange="listarArchivos(this, 'lista-reducir', '🖼️')">
+            <div id="lista-reducir"></div>
+        </fieldset>
+        <fieldset>
+            <legend>Opciones</legend>
+            <label>Tamaño máximo (px, lado más largo):</label>
+            <select name="max_px">
+                <option value="1280">1280 px</option>
+                <option value="800">800 px</option>
+                <option value="640">640 px</option>
+            </select>
+            <label>Calidad JPEG (%):</label>
+            <input type="number" name="calidad" min="10" max="95" value="60">
+            <span class="help-text">Recibirás un ZIP con las imágenes reducidas en formato JPEG.</span>
+        </fieldset>
+        <button type="submit" class="submit-btn">⬇️ Descargar ZIP</button>
+    </form>
+</div>

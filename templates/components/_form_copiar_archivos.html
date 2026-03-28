@@ -1,0 +1,14 @@
+<div class="container">
+    <h1>📁 Aplanar Archivos</h1>
+    <form action="/util/copiar-archivos" method="post" enctype="multipart/form-data">
+        <fieldset>
+            <legend>Archivos</legend>
+            <label>Selecciona los archivos que quieres reunir en una sola carpeta:</label>
+            <input type="file" name="archivos" multiple required
+                   onchange="listarArchivos(this, 'lista-copiar', '📄')">
+            <span class="help-text">Recibirás un ZIP con todos los archivos dentro de <code>archivos_extraidos/</code>.</span>
+            <div id="lista-copiar"></div>
+        </fieldset>
+        <button type="submit" class="submit-btn">⬇️ Descargar ZIP</button>
+    </form>
+</div>

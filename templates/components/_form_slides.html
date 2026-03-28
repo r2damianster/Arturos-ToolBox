@@ -1,0 +1,18 @@
+<div class="container">
+    <h1>🖼️ Generador de Presentación PPTX</h1>
+    <form action="/util/slides" method="post">
+        <fieldset>
+            <legend>Contenido</legend>
+            <label>Pega tu texto con formato:</label>
+            <span class="help-text">
+                Usa <strong>##</strong> para nueva diapositiva &nbsp;·&nbsp;
+                <strong>*texto*</strong> para negrita &nbsp;·&nbsp;
+                4 espacios de indentación para texto secundario.
+            </span>
+            <textarea name="contenido" class="textarea-flexible"
+                placeholder="## Título de la diapositiva&#10;Punto principal&#10;    Punto secundario&#10;&#10;## Segunda diapositiva&#10;Otro punto"
+                required style="min-height:320px;"></textarea>
+        </fieldset>
+        <button type="submit" class="submit-btn">⬇️ Descargar PPTX</button>
+    </form>
+</div>

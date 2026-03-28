@@ -1,0 +1,12 @@
+<div class="container">
+    <h1>📚 CSV → BibTeX</h1>
+    <form action="/util/csv-a-bib" method="post" enctype="multipart/form-data">
+        <fieldset>
+            <legend>Archivo de entrada</legend>
+            <label>Archivo CSV (exportado de Rayyan u otro gestor):</label>
+            <input type="file" name="csv_file" accept=".csv" required>
+            <span class="help-text">Columnas esperadas: key, title, authors, year, journal, volume, issue, pages, doi, url, notes.</span>
+        </fieldset>
+        <button type="submit" class="submit-btn">⬇️ Descargar .bib</button>
+    </form>
+</div>
