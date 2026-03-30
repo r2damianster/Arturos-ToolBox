@@ -1,5 +1,10 @@
-<div class="sidebar">
-    <h2>🧰 Arturo's ToolBox</h2>
+<div class="sidebar" id="sidebar">
+    <!-- Botón de colapso -->
+    <button class="sb-toggle-btn" id="sb-toggle" onclick="toggleSidebar()" title="Contraer menú">
+        ✕
+    </button>
+
+    <h2 class="sb-title">🧰 Arturo's ToolBox</h2>
 
     <!-- ── GRUPO 1: Herramientas ── -->
     <button class="sb-group-header sb-group-active" onclick="toggleGrupo('grp-herramientas')">
@@ -7,7 +12,6 @@
         <span class="sb-arrow">▶</span>
     </button>
     <div id="grp-herramientas" class="sb-group-items sb-group-open">
-        <button onclick="mostrarSeccion('util-csv-bib')">📚 CSV → BibTeX</button>
         <button onclick="mostrarSeccion('util-qr')">🔲 Generador QR</button>
         <button onclick="mostrarSeccion('util-slides')">🖼️ Generador PPTX</button>
         <button onclick="mostrarSeccion('util-unir-imagenes')">📎 Unir Imágenes a PDF</button>
@@ -23,17 +27,18 @@
         <span class="sb-arrow">▶</span>
     </button>
     <div id="grp-research" class="sb-group-items">
+        <button onclick="mostrarSeccion('util-csv-bib')">📚 CSV → BibTeX</button>
         <button onclick="mostrarSeccion('util-crear-archivos')">📊 Generar Estadística</button>
         <button onclick="mostrarSeccion('util-pretest')">📈 Pre-test / Post-test</button>
         <button onclick="mostrarSeccion('util-transcripcion')">🎙️ Transcriptor Audio</button>
     </div>
 
-    <!-- ── GRUPO 3: ARTeacher Docs ── -->
-    <button class="sb-group-header" onclick="toggleGrupo('grp-arteacher')">
-        <span>🎓 ARTeacher Docs</span>
+    <!-- ── GRUPO 3: Documentos ULEAM ── -->
+    <button class="sb-group-header" onclick="toggleGrupo('grp-uleam')">
+        <span>🏛️ Documentos ULEAM</span>
         <span class="sb-arrow">▶</span>
     </button>
-    <div id="grp-arteacher" class="sb-group-items">
+    <div id="grp-uleam" class="sb-group-items">
         <button onclick="mostrarSeccion('util-acta-tecnica')">📝 Acta Técnica (IA)</button>
         <button onclick="mostrarSeccion('util-conv-docentes')">👨‍🏫 Conv. Docentes</button>
         <button onclick="mostrarSeccion('util-conv-estudiantes')">🎓 Conv. Estudiantes</button>
@@ -41,3 +46,8 @@
         <button onclick="mostrarSeccion('util-maestria')">📦 Docs PAT Maestría</button>
     </div>
 </div>
+
+<!-- Botón flotante para abrir sidebar cuando está colapsado -->
+<button class="sb-open-btn" id="sb-open" onclick="toggleSidebar()" title="Abrir menú">
+    ☰
+</button>

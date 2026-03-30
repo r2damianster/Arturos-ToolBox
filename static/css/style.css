@@ -19,6 +19,14 @@ body {
     padding-top: 20px;
     position: fixed;
     overflow-y: auto;
+    overflow-x: hidden;
+    transition: transform 0.3s ease, width 0.3s ease;
+    z-index: 100;
+}
+
+/* Estado colapsado */
+.sidebar.sb-collapsed {
+    transform: translateX(-230px);
 }
 
 .sidebar h2 {
@@ -28,6 +36,47 @@ body {
     font-weight: bold;
     padding: 0 10px;
 }
+
+/* Botón ✕ dentro del sidebar */
+.sb-toggle-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 1em;
+    cursor: pointer;
+    padding: 4px 7px;
+    border-radius: 4px;
+    line-height: 1;
+    transition: color 0.2s, background 0.2s;
+    width: auto !important;
+    margin: 0 !important;
+    display: block !important;
+}
+.sb-toggle-btn:hover { color: #f1f5f9; background: #334155; }
+
+/* Botón ☰ flotante (visible solo cuando sidebar está colapsado) */
+.sb-open-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 200;
+    background: #1e293b;
+    color: #f1f5f9;
+    border: none;
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.2em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transition: background 0.2s;
+}
+.sb-open-btn:hover { background: #334155; }
+.sb-open-btn.sb-visible { display: flex; align-items: center; justify-content: center; }
 
 /* Cabecera de grupo (botón colapsable) */
 .sb-group-header {
@@ -86,6 +135,10 @@ body {
     margin-left: 230px;
     padding: 30px;
     width: 100%;
+    transition: margin-left 0.3s ease;
+}
+.main-content.sb-collapsed {
+    margin-left: 0;
 }
 
 .container {

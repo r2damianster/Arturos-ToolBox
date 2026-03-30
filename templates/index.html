@@ -5,9 +5,79 @@
 {% block content %}
 
     <div id="bienvenida" class="content-section">
-        <div class="container">
-            <h1>🧰 Arturo's ToolBox</h1>
-            <p style="text-align:center; color:#666;">Selecciona una herramienta del menú lateral para comenzar.</p>
+        <div class="container" style="max-width:780px;">
+
+            <!-- Encabezado -->
+            <div style="text-align:center;margin-bottom:28px;">
+                <div style="font-size:3.2em;margin-bottom:8px;">🧰</div>
+                <h1 style="margin-bottom:6px;">Arturo's ToolBox</h1>
+                <p style="color:#64748b;font-size:0.95em;margin:0;">
+                    Herramientas digitales para docentes, investigadores y equipos académicos.
+                </p>
+            </div>
+
+            <!-- Tarjeta de presentación -->
+            <div style="display:flex;gap:24px;align-items:flex-start;background:linear-gradient(135deg,#1e293b 0%,#334155 100%);
+                        border-radius:12px;padding:28px;color:#f1f5f9;margin-bottom:28px;flex-wrap:wrap;">
+                <div style="flex-shrink:0;width:72px;height:72px;border-radius:50%;background:#6366f1;
+                            display:flex;align-items:center;justify-content:center;font-size:2em;">
+                    👨‍💻
+                </div>
+                <div style="flex:1;min-width:220px;">
+                    <div style="font-size:1.25em;font-weight:700;margin-bottom:4px;">
+                        Arturo Damián Rodríguez Zambrano
+                    </div>
+                    <div style="color:#94a3b8;font-size:0.88em;margin-bottom:12px;">
+                        PhD · Docente entusiasta · Investigador · Vibe Coder 🚀
+                    </div>
+                    <div style="font-size:0.9em;color:#cbd5e1;margin-bottom:14px;line-height:1.6;">
+                        Docente de la Carrera de Pedagogía de los Idiomas Nacionales y Extranjeros
+                        en la <strong style="color:#f1f5f9;">ULEAM</strong> — Universidad Laica Eloy Alfaro de Manabí, Ecuador.<br>
+                        Apasionado por la tecnología educativa, la inclusión y la innovación en el aula.
+                    </div>
+                    <a href="https://orcid.org/0000-0002-7017-9443" target="_blank"
+                       style="display:inline-flex;align-items:center;gap:7px;background:#a3e635;color:#14532d;
+                              padding:6px 14px;border-radius:20px;text-decoration:none;font-size:0.82em;font-weight:700;">
+                        <svg width="16" height="16" viewBox="0 0 256 256" style="flex-shrink:0;">
+                            <circle cx="128" cy="128" r="128" fill="#a3e635"/>
+                            <path d="M86 74h20v108H86zm50 0h38c36 0 58 22 58 54s-22 54-58 54h-38zm20 18v72h17c22 0 38-14 38-36s-16-36-38-36z" fill="#14532d"/>
+                        </svg>
+                        ORCID · 0000-0002-7017-9443
+                    </a>
+                </div>
+            </div>
+
+            <!-- Mensaje para visitantes -->
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;
+                        padding:20px 24px;margin-bottom:28px;text-align:center;">
+                <div style="font-size:1.5em;margin-bottom:8px;">🎉</div>
+                <p style="color:#166534;font-weight:600;font-size:1.05em;margin:0 0 6px;">
+                    ¡Si estás aquí, es porque alguien le gustó esta herramienta!
+                </p>
+                <p style="color:#15803d;font-size:0.9em;margin:0;">
+                    Explorá el menú lateral y descubrí todo lo que podés hacer.
+                </p>
+            </div>
+
+            <!-- Categorías como cards -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;">
+                    <div style="font-size:1.4em;margin-bottom:6px;">🛠️</div>
+                    <strong style="color:#1e293b;">Herramientas</strong>
+                    <p style="color:#64748b;font-size:0.82em;margin:6px 0 0;">QR, PPTX, PDFs, imágenes y más utilidades generales.</p>
+                </div>
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;">
+                    <div style="font-size:1.4em;margin-bottom:6px;">🔬</div>
+                    <strong style="color:#1e293b;">Research Tools</strong>
+                    <p style="color:#64748b;font-size:0.82em;margin:6px 0 0;">Estadística, pre/post test, bibliografía y transcripción de audio.</p>
+                </div>
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;">
+                    <div style="font-size:1.4em;margin-bottom:6px;">🏛️</div>
+                    <strong style="color:#1e293b;">Documentos ULEAM</strong>
+                    <p style="color:#64748b;font-size:0.82em;margin:6px 0 0;">Actas, convocatorias, informes y documentación institucional con IA.</p>
+                </div>
+            </div>
+
         </div>
     </div>
 

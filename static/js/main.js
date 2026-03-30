@@ -13,6 +13,23 @@ function mostrarSeccion(seccionId) {
     }
 }
 
+// ── Sidebar: colapsar/expandir completamente ─────────────────────────────────
+function toggleSidebar() {
+    const sidebar  = document.getElementById('sidebar');
+    const main     = document.querySelector('.main-content');
+    const openBtn  = document.getElementById('sb-open');
+
+    if (sidebar.classList.contains('sb-collapsed')) {
+        sidebar.classList.remove('sb-collapsed');
+        main.classList.remove('sb-collapsed');
+        openBtn.classList.remove('sb-visible');
+    } else {
+        sidebar.classList.add('sb-collapsed');
+        main.classList.add('sb-collapsed');
+        openBtn.classList.add('sb-visible');
+    }
+}
+
 // ── Sidebar: grupos colapsables ─────────────────────────────────────────────
 function toggleGrupo(grupoId) {
     const grupo = document.getElementById(grupoId);
