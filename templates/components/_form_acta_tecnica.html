@@ -74,20 +74,61 @@
         <!-- 4. Notas para la IA -->
         <fieldset>
             <legend>4. Notas para la IA</legend>
+
+            <!-- Toggle manual / audio -->
+            <div style="display:flex;gap:8px;margin-bottom:16px;">
+                <button type="button" id="btn-modo-manual"
+                    onclick="setModoNotas('manual')"
+                    style="padding:8px 18px;border-radius:6px;border:2px solid #6366f1;
+                           background:#6366f1;color:#fff;font-weight:600;cursor:pointer;">
+                    ✍️ Escribir manualmente
+                </button>
+                <button type="button" id="btn-modo-audio"
+                    onclick="setModoNotas('audio')"
+                    style="padding:8px 18px;border-radius:6px;border:2px solid #6366f1;
+                           background:#fff;color:#6366f1;font-weight:600;cursor:pointer;">
+                    🎙️ Desde grabación
+                </button>
+            </div>
+
+            <!-- Panel: subir audio -->
+            <div id="panel-audio-notas" style="display:none;margin-bottom:16px;
+                 background:#f0f9ff;border-left:4px solid #0ea5e9;
+                 padding:14px 16px;border-radius:6px;">
+                <label style="font-weight:600;color:#0c4a6e;">Archivo de audio de la reunión:</label>
+                <input type="file" id="audio_acta_file"
+                       accept=".mp3,.mp4,.m4a,.wav,.ogg,.webm,.flac"
+                       onchange="mostrarNombreAudioActa(this)"
+                       style="margin-top:6px;">
+                <span id="audio-acta-nombre" class="help-text">
+                    Formatos: mp3, mp4, m4a, wav, ogg, webm, flac
+                </span>
+                <div style="margin-top:10px;">
+                    <button type="button" id="btn-extraer-audio"
+                        onclick="extraerNotasDesdeAudio()"
+                        style="padding:8px 20px;background:#0ea5e9;color:#fff;border:none;
+                               border-radius:6px;font-weight:600;cursor:pointer;">
+                        🤖 Extraer notas con IA
+                    </button>
+                    <span id="audio-acta-estado" style="margin-left:12px;font-size:0.85em;color:#64748b;"></span>
+                </div>
+            </div>
+
+            <!-- Textareas (siempre presentes, editables) -->
             <div style="display:flex;flex-direction:column;gap:12px;">
                 <div>
                     <label>Puntos del orden del día:</label>
-                    <textarea name="notas_aspectos" rows="3"
+                    <textarea id="notas_aspectos" name="notas_aspectos" rows="3"
                         placeholder="Ej: Revisión de sílabos, planificación de recuperación, reporte de asistencia" required></textarea>
                 </div>
                 <div>
                     <label>¿Qué sucedió en la reunión? (resumen breve):</label>
-                    <textarea name="notas_reunion" rows="4"
+                    <textarea id="notas_reunion" name="notas_reunion" rows="4"
                         placeholder="Ej: Se revisaron los sílabos de cada docente. Se discutió el cronograma de recuperación..." required></textarea>
                 </div>
                 <div>
                     <label>Acuerdos y compromisos finales:</label>
-                    <textarea name="notas_compromisos" rows="3"
+                    <textarea id="notas_compromisos" name="notas_compromisos" rows="3"
                         placeholder="Ej: Entregar sílabos corregidos antes del viernes, publicar cronograma en plataforma" required></textarea>
                 </div>
             </div>
@@ -108,7 +149,81 @@
 </div>
 
 <script>
-// Override del add-participante para incluir el campo cargo
+// ── Modo de notas: manual / audio ───────────────────────────────────────────
+function setModoNotas(modo) {
+    const panelAudio = document.getElementById('panel-audio-notas');
+    const btnManual  = document.getElementById('btn-modo-manual');
+    const btnAudio   = document.getElementById('btn-modo-audio');
+
+    if (modo === 'audio') {
+        panelAudio.style.display = 'block';
+        btnAudio.style.background  = '#6366f1';
+        btnAudio.style.color       = '#fff';
+        btnManual.style.background = '#fff';
+        btnManual.style.color      = '#6366f1';
+    } else {
+        panelAudio.style.display = 'none';
+        btnManual.style.background = '#6366f1';
+        btnManual.style.color      = '#fff';
+        btnAudio.style.background  = '#fff';
+        btnAudio.style.color       = '#6366f1';
+    }
+}
+
+function mostrarNombreAudioActa(input) {
+    const span = document.getElementById('audio-acta-nombre');
+    if (input.files.length && span) {
+        const name = input.files[0].name;
+        const size = (input.files[0].size / 1024 / 1024).toFixed(1);
+        span.textContent = `✅ ${name} (${size} MB)`;
+    }
+}
+
+function extraerNotasDesdeAudio() {
+    const fileInput = document.getElementById('audio_acta_file');
+    const estado    = document.getElementById('audio-acta-estado');
+    const btn       = document.getElementById('btn-extraer-audio');
+
+    if (!fileInput.files.length) {
+        estado.textContent = '⚠️ Seleccioná un archivo de audio primero.';
+        estado.style.color = '#dc2626';
+        return;
+    }
+
+    btn.disabled       = true;
+    btn.textContent    = '⏳ Procesando...';
+    estado.textContent = 'Transcribiendo y analizando con IA… esto puede tardar unos minutos.';
+    estado.style.color = '#64748b';
+
+    const fd = new FormData();
+    fd.append('audio_acta', fileInput.files[0]);
+
+    fetch('/util/acta_extraer_audio', { method: 'POST', body: fd })
+        .then(async res => {
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({ error: 'Error desconocido' }));
+                throw new Error(data.error || 'Error en el servidor');
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data.aspectos)    document.getElementById('notas_aspectos').value    = data.aspectos;
+            if (data.desarrollo)  document.getElementById('notas_reunion').value     = data.desarrollo;
+            if (data.compromisos) document.getElementById('notas_compromisos').value = data.compromisos;
+            estado.textContent = '✅ Notas extraídas. Podés editarlas antes de generar el acta.';
+            estado.style.color = '#16a34a';
+        })
+        .catch(err => {
+            estado.textContent = `❌ ${err.message}`;
+            estado.style.color = '#dc2626';
+        })
+        .finally(() => {
+            btn.disabled    = false;
+            btn.textContent = '🤖 Extraer notas con IA';
+        });
+}
+
+// ── Add participante ─────────────────────────────────────────────────────────
 document.getElementById('add-participante').addEventListener('click', function() {
     const lista = document.getElementById('lista-participantes');
     const fila  = document.createElement('div');

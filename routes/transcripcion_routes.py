@@ -1,6 +1,6 @@
 import io
 from flask import Blueprint, request, send_file, jsonify
-from logic.transcripcion_logic import transcribir_y_resumir, construir_txt
+from logic.transcripcion_logic import transcribir_y_resumir, construir_txt, extraer_notas_desde_audio
 
 transcripcion_bp = Blueprint('transcripcion', __name__)
 
@@ -33,6 +33,20 @@ def transcribir():
             as_attachment=True,
             download_name=nombre_archivo
         )
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@transcripcion_bp.route('/util/acta_extraer_audio', methods=['POST'])
+def acta_extraer_audio():
+    try:
+        audio_file = request.files.get('audio_acta')
+        if not audio_file or not audio_file.filename:
+            return jsonify({"error": "No se recibió ningún archivo de audio."}), 400
+
+        resultado = extraer_notas_desde_audio(audio_file)
+        return jsonify(resultado)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

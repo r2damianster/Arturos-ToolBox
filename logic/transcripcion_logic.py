@@ -120,6 +120,76 @@ No agregues introducciones, conclusiones ni texto fuera de estas tres secciones.
             pass
 
 
+def extraer_notas_desde_audio(audio_file) -> dict:
+    """
+    Transcribe el audio y extrae las 3 secciones para el Acta Técnica.
+    Devuelve dict con claves: aspectos, desarrollo, compromisos.
+    """
+    import json as _json
+
+    suffix = os.path.splitext(audio_file.filename)[1] or '.mp3'
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    try:
+        audio_file.save(tmp.name)
+        tmp.close()
+
+        config = aai.TranscriptionConfig(
+            speaker_labels     = True,
+            language_detection = True,
+            redact_pii         = True,
+            redact_pii_policies = [
+                aai.PIIRedactionPolicy.email_address,
+                aai.PIIRedactionPolicy.phone_number,
+            ],
+            redact_pii_sub = aai.PIISubstitutionPolicy.hash,
+        )
+
+        transcriber = aai.Transcriber()
+        transcript  = transcriber.transcribe(tmp.name, config=config)
+
+        if transcript.status == aai.TranscriptStatus.error:
+            raise Exception(f"AssemblyAI error: {transcript.error}")
+
+        idioma_label = transcript.language_code or "es"
+
+        prompt = f"""Eres un asistente experto en redactar actas institucionales.
+A partir de la transcripción de reunión provista, extrae la información necesaria para completar un Acta Técnica.
+
+Responde ÚNICAMENTE con un objeto JSON válido con exactamente estas 3 claves (sin texto adicional, sin markdown, sin bloques de código):
+
+{{
+  "aspectos": "Lista de los puntos del orden del día tratados, separados por comas.",
+  "desarrollo": "Resumen breve en 3-5 oraciones de lo que sucedió en la reunión, en tercera persona.",
+  "compromisos": "Lista de los acuerdos y compromisos asumidos. Si no hubo, escribe: No se registraron acuerdos formales."
+}}
+
+Redacta en el mismo idioma del audio (código: {idioma_label})."""
+
+        lemur_result = transcript.lemur.task(
+            prompt      = prompt,
+            final_model = aai.LemurModel.claude3_5_sonnet,
+        )
+
+        raw = lemur_result.response.strip()
+        # Limpiar bloques de código markdown si los hubiera
+        if raw.startswith('```'):
+            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+            raw = raw.rsplit('```', 1)[0].strip()
+
+        data = _json.loads(raw)
+        return {
+            "aspectos":     data.get("aspectos", "").strip(),
+            "desarrollo":   data.get("desarrollo", "").strip(),
+            "compromisos":  data.get("compromisos", "").strip(),
+        }
+
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except Exception:
+            pass
+
+
 def construir_txt(titulo: str, resultado: dict) -> str:
     """Arma el archivo TXT final con resumen + transcript."""
     dur = resultado["duracion_seg"]
