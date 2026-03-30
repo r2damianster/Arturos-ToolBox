@@ -1,7 +1,9 @@
 <div class="container" style="max-width:900px;">
     <h1>📝 Acta Técnica con IA</h1>
 
-    <form action="{{ url_for('actas.generar_acta_tecnica') }}" method="POST">
+    <form action="{{ url_for('actas.generar_acta_tecnica') }}" method="POST" enctype="multipart/form-data">
+
+        <!-- 1. Información General -->
         <fieldset>
             <legend>1. Información General</legend>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -29,28 +31,49 @@
                 </div>
                 <div style="grid-column:1/-1;">
                     <label>Convocado por (Nombre, Cargo):</label>
-                    <input type="text" name="convocante" placeholder="Ej: Mg. López, Director de Carrera" required>
+                    <input type="text" name="convocante"
+                           placeholder="Ej: Mg. López, Director de Carrera" required>
                 </div>
             </div>
         </fieldset>
 
+        <!-- 2. Participantes / Firmantes -->
         <fieldset>
-            <legend>2. Participantes</legend>
+            <legend>2. Participantes (aparecerán como firmantes)</legend>
             <div id="lista-participantes">
-                <div class="participante-row" style="display:flex;gap:10px;margin-bottom:10px;">
-                    <input type="text" name="p_titulo[]"   placeholder="Título" style="width:90px;">
-                    <input type="text" name="p_nombre[]"   placeholder="Nombre"   required>
+                <div class="participante-row"
+                     style="display:grid;grid-template-columns:80px 1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+                    <input type="text" name="p_titulo[]"  placeholder="Título" style="width:100%;">
+                    <input type="text" name="p_nombre[]"  placeholder="Nombre"   required>
                     <input type="text" name="p_apellido[]" placeholder="Apellido" required>
+                    <input type="text" name="p_cargo[]"   placeholder="Cargo" value="Docente">
                 </div>
             </div>
             <button type="button" id="add-participante" class="submit-btn"
-                style="background:#e2e8f0;color:#1e293b;margin-top:8px;font-size:0.85em;padding:8px 16px;">
+                style="background:#e2e8f0;color:#1e293b;margin-top:8px;font-size:0.85em;padding:8px 16px;width:auto;">
                 + Añadir Participante
             </button>
         </fieldset>
 
+        <!-- 3. Elaborado por -->
         <fieldset>
-            <legend>3. Notas para la IA</legend>
+            <legend>3. Elaborado por</legend>
+            <div style="display:grid;grid-template-columns:100px 1fr;gap:12px;">
+                <div>
+                    <label>Título:</label>
+                    <input type="text" name="elaborado_titulo" placeholder="Ej: Lic." required>
+                </div>
+                <div>
+                    <label>Nombre completo:</label>
+                    <input type="text" name="elaborado_nombre"
+                           placeholder="Ej: Yasmín Bermúdez Velasco" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- 4. Notas para la IA -->
+        <fieldset>
+            <legend>4. Notas para la IA</legend>
             <div style="display:flex;flex-direction:column;gap:12px;">
                 <div>
                     <label>Puntos del orden del día:</label>
@@ -70,6 +93,37 @@
             </div>
         </fieldset>
 
+        <!-- 5. Evidencias fotográficas -->
+        <fieldset>
+            <legend>5. Evidencias fotográficas (opcional)</legend>
+            <span class="help-text">Podés subir varias fotos — se insertarán en la sección de evidencias del acta.</span>
+            <input type="file" name="fotos_evidencia" accept="image/*" multiple
+                   onchange="listarArchivos(this, 'lista-fotos', '📷')"
+                   style="margin-top:8px;">
+            <div id="lista-fotos" style="margin-top:8px;"></div>
+        </fieldset>
+
         <button type="submit" class="submit-btn">🤖 Generar Acta con IA</button>
     </form>
 </div>
+
+<script>
+// Override del add-participante para incluir el campo cargo
+document.getElementById('add-participante').addEventListener('click', function() {
+    const lista = document.getElementById('lista-participantes');
+    const fila  = document.createElement('div');
+    fila.className = 'participante-row';
+    fila.style.cssText = 'display:grid;grid-template-columns:80px 1fr 1fr 1fr;gap:8px;margin-bottom:8px;';
+    fila.innerHTML = `
+        <input type="text" name="p_titulo[]"   placeholder="Título"   style="width:100%;">
+        <input type="text" name="p_nombre[]"   placeholder="Nombre"   required>
+        <input type="text" name="p_apellido[]" placeholder="Apellido" required>
+        <input type="text" name="p_cargo[]"    placeholder="Cargo" value="Docente">
+        <button type="button" onclick="this.closest('.participante-row').remove()"
+            style="grid-column:1/-1;background:#fee2e2;color:#991b1b;border:none;
+                   border-radius:4px;padding:4px;cursor:pointer;font-size:0.8em;">
+            ✕ Eliminar
+        </button>`;
+    lista.appendChild(fila);
+});
+</script>
