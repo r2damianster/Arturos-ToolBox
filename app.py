@@ -1,4 +1,6 @@
 from flask import Flask, render_template
+from dotenv import load_dotenv
+load_dotenv()
 from routes.utilidades_routes import utilidades_bp
 from routes.actas_routes import actas_bp
 from routes.convocatorias_routes import convocatorias_bp

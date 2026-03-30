@@ -13,3 +13,4 @@ docxtpl==0.16.7
 docxcompose==1.4.0
 groq
 serverless-wsgi
+python-dotenv
