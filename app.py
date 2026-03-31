@@ -1,35 +1,48 @@
 from flask import Flask, render_template
 from dotenv import load_dotenv
 import os
+import logging
 
-# Cargar variables de entorno
+# Configurar logs para ver qué pasa en Render
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 load_dotenv()
 
-# Importación de blueprints
-from routes.utilidades_routes import utilidades_bp
-from routes.actas_routes import actas_bp
-from routes.convocatorias_routes import convocatorias_bp
-from routes.reportes_routes import reportes_bp
-from routes.maestrias_routes import maestrias_bp
-from routes.transcripcion_routes import transcripcion_bp
-
-# Inicialización de la app
 app = Flask(__name__)
 
-# Registro de blueprints
-app.register_blueprint(utilidades_bp)
-app.register_blueprint(actas_bp)
-app.register_blueprint(convocatorias_bp)
-app.register_blueprint(reportes_bp)
-app.register_blueprint(maestrias_bp)
-app.register_blueprint(transcripcion_bp)
+def configurar_rutas(app):
+    # Lista de blueprints a registrar
+    blueprints = [
+        ('routes.utilidades_routes', 'utilidades_bp'),
+        ('routes.actas_routes', 'actas_bp'),
+        ('routes.convocatorias_routes', 'convocatorias_bp'),
+        ('routes.reportes_routes', 'reportes_bp'),
+        ('routes.maestrias_routes', 'maestrias_bp'),
+        ('routes.transcripcion_routes', 'transcripcion_bp')
+    ]
 
-# Ruta principal
+    for module_path, bp_name in blueprints:
+        try:
+            # Importación dinámica: solo falla este módulo si hay error
+            import importlib
+            module = importlib.import_module(module_path)
+            blueprint = getattr(module, bp_name)
+            app.register_blueprint(blueprint)
+            logger.info(f"✔ Cargado exitosamente: {bp_name}")
+        except Exception as e:
+            logger.error(f"❌ Error cargando {bp_name}: {str(e)}")
+
+configurar_rutas(app)
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except:
+        return {"status": "Servidor activo", "note": "index.html no encontrado"}, 200
 
-# Ejecución local / compatible con Render
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
+    # debug=True es genial para local, pero Render usa Gunicorn (que ignora esto)
     app.run(host='0.0.0.0', port=port, debug=True)
