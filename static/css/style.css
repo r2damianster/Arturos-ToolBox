@@ -12,52 +12,70 @@ body {
    BARRA LATERAL
 =========================== */
 .sidebar {
-    width: 230px;
-    background-color: #1e293b;
-    color: white;
+    width: 250px;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    color: #e2e8f0;
     height: 100vh;
-    padding-top: 20px;
+    padding: 0 0 20px;
     position: fixed;
     overflow-y: auto;
     overflow-x: hidden;
-    transition: transform 0.3s ease, width 0.3s ease;
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
     z-index: 100;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.18);
 }
 
 /* Estado colapsado */
-.sidebar.sb-collapsed {
-    transform: translateX(-230px);
-}
+.sidebar.sb-collapsed { transform: translateX(-250px); }
 
-.sidebar h2 {
-    text-align: center;
-    margin-bottom: 16px;
-    font-size: 1.1em;
-    font-weight: bold;
-    padding: 0 10px;
+/* Overlay oscuro en mobile cuando sidebar está abierto */
+.sb-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 99;
+}
+.sb-overlay.sb-visible { display: block; }
+
+/* Header del sidebar */
+.sb-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 14px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    margin-bottom: 8px;
+}
+.sb-title {
+    font-size: 1em;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0;
+    letter-spacing: 0.01em;
 }
 
 /* Botón ✕ dentro del sidebar */
 .sb-toggle-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
     background: transparent;
     border: none;
-    color: #94a3b8;
-    font-size: 1em;
+    color: #64748b;
+    font-size: 1.1em;
     cursor: pointer;
-    padding: 4px 7px;
-    border-radius: 4px;
+    padding: 4px 6px;
+    border-radius: 6px;
     line-height: 1;
     transition: color 0.2s, background 0.2s;
     width: auto !important;
     margin: 0 !important;
-    display: block !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
-.sb-toggle-btn:hover { color: #f1f5f9; background: #334155; }
+.sb-toggle-btn:hover { color: #f1f5f9; background: rgba(255,255,255,0.08); }
 
-/* Botón ☰ flotante (visible solo cuando sidebar está colapsado) */
+/* Botón ☰ flotante */
 .sb-open-btn {
     display: none;
     position: fixed;
@@ -67,78 +85,120 @@ body {
     background: #1e293b;
     color: #f1f5f9;
     border: none;
-    border-radius: 8px;
-    width: 40px;
-    height: 40px;
+    border-radius: 10px;
+    width: 42px;
+    height: 42px;
     font-size: 1.2em;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-    transition: background 0.2s;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    transition: background 0.2s, transform 0.2s;
 }
-.sb-open-btn:hover { background: #334155; }
+.sb-open-btn:hover { background: #334155; transform: scale(1.05); }
 .sb-open-btn.sb-visible { display: flex; align-items: center; justify-content: center; }
 
-/* Cabecera de grupo (botón colapsable) */
+/* Cabecera de grupo — estilo amigable, sin mayúsculas */
 .sb-group-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 90%;
-    margin: 4px auto 0;
-    padding: 9px 12px;
+    width: calc(100% - 20px);
+    margin: 2px 10px 0;
+    padding: 10px 12px;
     border: none;
-    border-radius: 6px;
-    background-color: #0f172a;
+    border-radius: 10px;
+    background: transparent;
     color: #94a3b8;
     cursor: pointer;
-    font-size: 0.78em;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    transition: background 0.2s;
+    font-size: 0.9em;
+    font-weight: 600;
+    transition: background 0.18s, color 0.18s;
 }
-.sb-group-header:hover { background-color: #1e3a5f; color: #e2e8f0; }
-.sb-group-header.sb-group-active { color: #e2e8f0; }
-.sb-group-header .sb-arrow { transition: transform 0.2s; font-size: 0.8em; }
-.sb-group-header.sb-group-active .sb-arrow { transform: rotate(90deg); }
+.sb-group-header:hover {
+    background: rgba(255,255,255,0.07);
+    color: #e2e8f0;
+}
+.sb-group-header.sb-group-active {
+    color: #f1f5f9;
+    background: rgba(99,102,241,0.18);
+}
+.sb-group-header .sb-arrow {
+    transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+    font-size: 0.75em;
+    opacity: 0.6;
+}
+.sb-group-header.sb-group-active .sb-arrow { transform: rotate(90deg); opacity: 1; }
 
 /* Items dentro del grupo */
 .sb-group-items {
-    display: none;
-    padding-bottom: 4px;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s cubic-bezier(.4,0,.2,1);
+    padding: 0 0 0 0;
 }
-.sb-group-items.sb-group-open { display: block; }
+.sb-group-items.sb-group-open { max-height: 500px; }
 
-.sidebar button {
-    display: block;
-    width: 86%;
-    margin: 3px auto 3px 22px;
-    padding: 9px 12px;
+/* Botones de navegación dentro de grupos */
+.sidebar .sb-group-items button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: calc(100% - 28px);
+    margin: 2px 10px 2px 18px;
+    padding: 8px 12px;
     border: none;
-    border-radius: 5px;
-    background-color: #334155;
-    color: white;
+    border-radius: 8px;
+    background: transparent;
+    color: #94a3b8;
     cursor: pointer;
     text-align: left;
-    font-size: 0.87em;
-    transition: background 0.2s ease;
+    font-size: 0.875em;
+    transition: background 0.18s, color 0.18s, transform 0.15s;
 }
-
-.sidebar button:hover {
-    background-color: #475569;
+.sidebar .sb-group-items button:hover {
+    background: rgba(255,255,255,0.08);
+    color: #f1f5f9;
+    transform: translateX(2px);
+}
+.sidebar .sb-group-items button.sb-active {
+    background: rgba(99,102,241,0.25);
+    color: #c7d2fe;
 }
 
 /* ===========================
    CONTENIDO PRINCIPAL
 =========================== */
 .main-content {
-    margin-left: 230px;
+    margin-left: 250px;
     padding: 30px;
     width: 100%;
-    transition: margin-left 0.3s ease;
+    transition: margin-left 0.3s cubic-bezier(.4,0,.2,1);
 }
 .main-content.sb-collapsed {
     margin-left: 0;
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-250px);
+        z-index: 100;
+    }
+    .sidebar.sb-mobile-open {
+        transform: translateX(0);
+    }
+    .main-content {
+        margin-left: 0 !important;
+        padding: 70px 16px 20px;
+    }
+    .sb-open-btn {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+    .sb-open-btn.sb-visible,
+    .sb-open-btn {
+        display: flex !important;
+    }
 }
 
 .container {

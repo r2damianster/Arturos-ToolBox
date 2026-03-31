@@ -13,7 +13,6 @@ def generar_documento_pat06(datos):
     
     contexto = {
         "FechaCarta": f"{fecha_carta_dt.day} de {meses[fecha_carta_dt.month]} del {fecha_carta_dt.year}",
-        "Responsable": datos["responsable"], "MAESTRIA": datos["MAESTRIA"],
         "Oficio": datos["oficio"], "NOMBRE": datos["nombre"], "Articulo": datos["articulo"],
         "TutorFirma": "Dr. Rodríguez Zambrano Arturo Damián, PhD"
     }

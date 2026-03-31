@@ -11,32 +11,59 @@ function mostrarSeccion(seccionId) {
     } else {
         console.warn(`Sección "${seccionId}" no existe en el DOM.`);
     }
+    // Marcar botón activo en sidebar
+    document.querySelectorAll('.sb-group-items button').forEach(b => b.classList.remove('sb-active'));
+    const btnActivo = document.querySelector(`.sb-group-items button[onclick*="${seccionId}"]`);
+    if (btnActivo) btnActivo.classList.add('sb-active');
+    // Cerrar en mobile
+    _cerrarSidebarMobile();
 }
 
-// ── Sidebar: colapsar/expandir completamente ─────────────────────────────────
+// ── Sidebar: colapsar/expandir (desktop + mobile overlay) ───────────────────
 function toggleSidebar() {
     const sidebar  = document.getElementById('sidebar');
     const main     = document.querySelector('.main-content');
     const openBtn  = document.getElementById('sb-open');
+    const overlay  = document.getElementById('sb-overlay');
+    const isMobile = window.innerWidth <= 768;
 
-    if (sidebar.classList.contains('sb-collapsed')) {
-        sidebar.classList.remove('sb-collapsed');
-        main.classList.remove('sb-collapsed');
-        openBtn.classList.remove('sb-visible');
+    if (isMobile) {
+        const isOpen = sidebar.classList.contains('sb-mobile-open');
+        sidebar.classList.toggle('sb-mobile-open', !isOpen);
+        overlay.classList.toggle('sb-visible', !isOpen);
     } else {
-        sidebar.classList.add('sb-collapsed');
-        main.classList.add('sb-collapsed');
-        openBtn.classList.add('sb-visible');
+        const isCollapsed = sidebar.classList.contains('sb-collapsed');
+        sidebar.classList.toggle('sb-collapsed', !isCollapsed);
+        main.classList.toggle('sb-collapsed', !isCollapsed);
+        openBtn.classList.toggle('sb-visible', !isCollapsed);
     }
 }
 
-// ── Sidebar: grupos colapsables ─────────────────────────────────────────────
+// Cerrar sidebar mobile al navegar
+function _cerrarSidebarMobile() {
+    if (window.innerWidth <= 768) {
+        document.getElementById('sidebar')?.classList.remove('sb-mobile-open');
+        document.getElementById('sb-overlay')?.classList.remove('sb-visible');
+    }
+}
+
+// ── Sidebar: acordeón — solo un grupo abierto a la vez ──────────────────────
 function toggleGrupo(grupoId) {
-    const grupo = document.getElementById(grupoId);
-    const btn   = grupo ? grupo.previousElementSibling : null;
+    const grupo   = document.getElementById(grupoId);
+    const btn     = grupo ? grupo.previousElementSibling : null;
     if (!grupo) return;
-    grupo.classList.toggle('sb-group-open');
-    if (btn) btn.classList.toggle('sb-group-active');
+
+    const estaAbierto = grupo.classList.contains('sb-group-open');
+
+    // Cerrar todos los grupos primero
+    document.querySelectorAll('.sb-group-items').forEach(g => g.classList.remove('sb-group-open'));
+    document.querySelectorAll('.sb-group-header').forEach(b => b.classList.remove('sb-group-active'));
+
+    // Si estaba cerrado, abrirlo
+    if (!estaAbierto) {
+        grupo.classList.add('sb-group-open');
+        if (btn) btn.classList.add('sb-group-active');
+    }
 }
 
 // ── Lista archivos en input[type=file] ──────────────────────────────────────
