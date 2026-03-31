@@ -8,7 +8,7 @@ try:
     from .PATS.Pat05 import generar_documento_pat05
     from .PATS.Pat06 import generar_documento_pat06
 except ImportError:
-    from PATS.Pat03 import generar_documento_pat03
+    from .PATS.Pat03 import generar_documento_pat0
     from PATS.Pat04 import generar_documento_pat04
     from PATS.Pat05 import generar_documento_pat05
     from PATS.Pat06 import generar_documento_pat06

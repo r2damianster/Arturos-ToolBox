@@ -3,6 +3,9 @@ import io
 import tempfile
 import assemblyai as aai
 
+import assemblyai as aai
+print(aai.__version__)
+
 aai.settings.api_key = os.environ.get('ASSEMBLYAI_API_KEY', '')
 
 
@@ -33,20 +36,20 @@ def transcribir_y_resumir(audio_file, speaker_names: dict) -> dict:
         tmp.close()
 
         # ── 2. Configurar y transcribir ──────────────────────────────────────
-        # speech_model="universal-2" es requerido para language_detection (SDK ≥ 0.30)
+        # speech_model="universal" es requerido para language_detection (SDK ≥ 0.30)
         config = aai.TranscriptionConfig(
-            speech_model        = "universal-2",
-            speaker_labels      = True,
-            language_detection  = True,
-            redact_pii          = True,
-            redact_pii_policies = [
+            speech_models=[aai.SpeechModel.universal],
+            speaker_labels=True,
+            language_detection=True,
+            redact_pii=True,
+            redact_pii_policies=[
                 aai.PIIRedactionPolicy.email_address,
                 aai.PIIRedactionPolicy.phone_number,
                 aai.PIIRedactionPolicy.us_social_security_number,
                 aai.PIIRedactionPolicy.banking_information,
                 aai.PIIRedactionPolicy.credit_card_number,
             ],
-            redact_pii_sub = aai.PIISubstitutionPolicy.hash,
+            redact_pii_sub=aai.PIISubstitutionPolicy.hash,
         )
 
         transcriber = aai.Transcriber()
@@ -98,11 +101,14 @@ ACUERDOS Y COMPROMISOS
 
 No agregues introducciones, conclusiones ni texto fuera de estas tres secciones."""
 
-        lemur_result = transcript.lemur.task(
-            prompt      = prompt,
-            final_model = aai.LemurModel.claude3_5_sonnet,
-        )
-        resumen = lemur_result.response.strip()
+        try:
+            lemur_result = transcript.lemur.task(
+                prompt      = prompt,
+                final_model = aai.LemurModel.claude3_5_sonnet,
+            )
+            resumen = lemur_result.response.strip()
+        except Exception as e:
+            resumen = f"ADVERTENCIA: No se pudo generar el resumen automático (LeMUR no disponible en esta cuenta).\nError: {str(e)}"
 
         # ── 6. Duración ──────────────────────────────────────────────────────
         duracion_seg = (transcript.audio_duration or 0)
@@ -117,7 +123,8 @@ No agregues introducciones, conclusiones ni texto fuera de estas tres secciones.
 
     finally:
         try:
-            os.unlink(tmp.name)
+            if os.path.exists(tmp.name):
+                os.unlink(tmp.name)
         except Exception:
             pass
 
@@ -136,15 +143,15 @@ def extraer_notas_desde_audio(audio_file) -> dict:
         tmp.close()
 
         config = aai.TranscriptionConfig(
-            speech_model       = "universal-2",
-            speaker_labels     = True,
-            language_detection = True,
-            redact_pii         = True,
-            redact_pii_policies = [
+            speech_models=[aai.SpeechModel.universal],
+            speaker_labels=True,
+            language_detection=True,
+            redact_pii=True,
+            redact_pii_policies=[
                 aai.PIIRedactionPolicy.email_address,
                 aai.PIIRedactionPolicy.phone_number,
             ],
-            redact_pii_sub = aai.PIISubstitutionPolicy.hash,
+            redact_pii_sub=aai.PIISubstitutionPolicy.hash,
         )
 
         transcriber = aai.Transcriber()
@@ -168,18 +175,27 @@ Responde ÚNICAMENTE con un objeto JSON válido con exactamente estas 3 claves (
 
 Redacta en el mismo idioma del audio (código: {idioma_label})."""
 
-        lemur_result = transcript.lemur.task(
-            prompt      = prompt,
-            final_model = aai.LemurModel.claude3_5_sonnet,
-        )
+        try:
+            lemur_result = transcript.lemur.task(
+                prompt      = prompt,
+                final_model = aai.LemurModel.claude3_5_sonnet,
+            )
 
-        raw = lemur_result.response.strip()
-        # Limpiar bloques de código markdown si los hubiera
-        if raw.startswith('```'):
-            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
-            raw = raw.rsplit('```', 1)[0].strip()
+            raw = lemur_result.response.strip()
+            # Limpiar bloques de código markdown si los hubiera
+            if raw.startswith('```'):
+                raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+                raw = raw.rsplit('```', 1)[0].strip()
 
-        data = _json.loads(raw)
+            data = _json.loads(raw)
+        except Exception:
+            # Fallback en caso de que LeMUR falle
+            data = {
+                "aspectos": "Error: Acceso a LeMUR denegado.",
+                "desarrollo": "No se pudo procesar el análisis por restricciones de la cuenta API.",
+                "compromisos": "No disponible."
+            }
+
         return {
             "aspectos":     data.get("aspectos", "").strip(),
             "desarrollo":   data.get("desarrollo", "").strip(),
@@ -188,7 +204,8 @@ Redacta en el mismo idioma del audio (código: {idioma_label})."""
 
     finally:
         try:
-            os.unlink(tmp.name)
+            if os.path.exists(tmp.name):
+                os.unlink(tmp.name)
         except Exception:
             pass
 
