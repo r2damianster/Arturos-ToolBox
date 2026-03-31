@@ -38,7 +38,7 @@ def transcribir_y_resumir(audio_file, speaker_names: dict) -> dict:
         # ── 2. Configurar y transcribir ──────────────────────────────────────
         # speech_model="universal" es requerido para language_detection (SDK ≥ 0.30)
         config = aai.TranscriptionConfig(
-            speech_models=[aai.SpeechModel.universal],
+            speech_models="best",
             speaker_labels=True,
             language_detection=True,
             redact_pii=True,
@@ -143,7 +143,7 @@ def extraer_notas_desde_audio(audio_file) -> dict:
         tmp.close()
 
         config = aai.TranscriptionConfig(
-            speech_models=[aai.SpeechModel.universal],
+            speech_models="best",,
             speaker_labels=True,
             language_detection=True,
             redact_pii=True,
