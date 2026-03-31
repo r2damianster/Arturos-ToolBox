@@ -143,7 +143,7 @@ def extraer_notas_desde_audio(audio_file) -> dict:
         tmp.close()
 
         config = aai.TranscriptionConfig(
-            speech_models="best",,
+            speech_models="best",
             speaker_labels=True,
             language_detection=True,
             redact_pii=True,
