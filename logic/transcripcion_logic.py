@@ -1,19 +1,16 @@
 import os
 import io
 import tempfile
+import json as _json
 import assemblyai as aai
 
-import assemblyai as aai
-print(aai.__version__)
-
+# Configuración de API
 aai.settings.api_key = os.environ.get('ASSEMBLYAI_API_KEY', '')
-
 
 def _ts(ms):
     """Convierte milisegundos a [MM:SS]."""
     s = ms // 1000
     return f"[{s // 60:02d}:{s % 60:02d}]"
-
 
 def _nombre_hablante(speaker_letter, speaker_names):
     """Devuelve nombre real si fue mapeado, si no 'Hablante X'."""
@@ -21,7 +18,6 @@ def _nombre_hablante(speaker_letter, speaker_names):
     if speaker_names and key in speaker_names and speaker_names[key].strip():
         return speaker_names[key].strip()
     return f"Hablante {key}"
-
 
 def transcribir_y_resumir(audio_file, speaker_names: dict) -> dict:
     """
@@ -31,14 +27,15 @@ def transcribir_y_resumir(audio_file, speaker_names: dict) -> dict:
     # ── 1. Guardar en archivo temporal ──────────────────────────────────────
     suffix = os.path.splitext(audio_file.filename)[1] or '.mp3'
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    
     try:
         audio_file.save(tmp.name)
         tmp.close()
 
         # ── 2. Configurar y transcribir ──────────────────────────────────────
-        # speech_model="universal" es requerido para language_detection (SDK ≥ 0.30)
+        # SOLUCIÓN: Usamos speech_model="best" como string simple para evitar errores de tipo
         config = aai.TranscriptionConfig(
-            speech_models="best",
+            speech_model="best", 
             speaker_labels=True,
             language_detection=True,
             redact_pii=True,
@@ -53,7 +50,7 @@ def transcribir_y_resumir(audio_file, speaker_names: dict) -> dict:
         )
 
         transcriber = aai.Transcriber()
-        transcript  = transcriber.transcribe(tmp.name, config=config)
+        transcript = transcriber.transcribe(tmp.name, config=config)
 
         if transcript.status == aai.TranscriptStatus.error:
             raise Exception(f"AssemblyAI error: {transcript.error}")
@@ -77,7 +74,7 @@ def transcribir_y_resumir(audio_file, speaker_names: dict) -> dict:
         )
 
         # ── 5. LeMUR: resumen estructurado ───────────────────────────────────
-        word_count   = len(transcript.text.split())
+        word_count = len(transcript.text.split()) if transcript.text else 0
         target_words = max(250, int(word_count * 0.15))
         idioma_label = transcript.language_code or "es"
 
@@ -103,8 +100,8 @@ No agregues introducciones, conclusiones ni texto fuera de estas tres secciones.
 
         try:
             lemur_result = transcript.lemur.task(
-                prompt      = prompt,
-                final_model = aai.LemurModel.claude3_5_sonnet,
+                prompt=prompt,
+                final_model=aai.LemurModel.claude3_5_sonnet,
             )
             resumen = lemur_result.response.strip()
         except Exception as e:
@@ -122,28 +119,27 @@ No agregues introducciones, conclusiones ni texto fuera de estas tres secciones.
         }
 
     finally:
-        try:
-            if os.path.exists(tmp.name):
+        if os.path.exists(tmp.name):
+            try:
                 os.unlink(tmp.name)
-        except Exception:
-            pass
-
+            except:
+                pass
 
 def extraer_notas_desde_audio(audio_file) -> dict:
     """
     Transcribe el audio y extrae las 3 secciones para el Acta Técnica.
     Devuelve dict con claves: aspectos, desarrollo, compromisos.
     """
-    import json as _json
-
     suffix = os.path.splitext(audio_file.filename)[1] or '.mp3'
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    
     try:
         audio_file.save(tmp.name)
         tmp.close()
 
+        # SOLUCIÓN: Aplicado el mismo cambio aquí para evitar el error de tipado
         config = aai.TranscriptionConfig(
-            speech_models="best",
+            speech_model="best",
             speaker_labels=True,
             language_detection=True,
             redact_pii=True,
@@ -155,7 +151,7 @@ def extraer_notas_desde_audio(audio_file) -> dict:
         )
 
         transcriber = aai.Transcriber()
-        transcript  = transcriber.transcribe(tmp.name, config=config)
+        transcript = transcriber.transcribe(tmp.name, config=config)
 
         if transcript.status == aai.TranscriptStatus.error:
             raise Exception(f"AssemblyAI error: {transcript.error}")
@@ -165,7 +161,7 @@ def extraer_notas_desde_audio(audio_file) -> dict:
         prompt = f"""Eres un asistente experto en redactar actas institucionales.
 A partir de la transcripción de reunión provista, extrae la información necesaria para completar un Acta Técnica.
 
-Responde ÚNICAMENTE con un objeto JSON válido con exactamente estas 3 claves (sin texto adicional, sin markdown, sin bloques de código):
+Responde ÚNICAMENTE con un objeto JSON válido con exactamente estas 3 claves:
 
 {{
   "aspectos": "Lista de los puntos del orden del día tratados, separados por comas.",
@@ -177,44 +173,41 @@ Redacta en el mismo idioma del audio (código: {idioma_label})."""
 
         try:
             lemur_result = transcript.lemur.task(
-                prompt      = prompt,
-                final_model = aai.LemurModel.claude3_5_sonnet,
+                prompt=prompt,
+                final_model=aai.LemurModel.claude3_5_sonnet,
             )
 
             raw = lemur_result.response.strip()
-            # Limpiar bloques de código markdown si los hubiera
+            # Limpiar bloques de código markdown
             if raw.startswith('```'):
                 raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
                 raw = raw.rsplit('```', 1)[0].strip()
 
             data = _json.loads(raw)
         except Exception:
-            # Fallback en caso de que LeMUR falle
             data = {
-                "aspectos": "Error: Acceso a LeMUR denegado.",
+                "aspectos": "Error: Acceso a LeMUR denegado o JSON inválido.",
                 "desarrollo": "No se pudo procesar el análisis por restricciones de la cuenta API.",
                 "compromisos": "No disponible."
             }
 
         return {
-            "aspectos":     data.get("aspectos", "").strip(),
-            "desarrollo":   data.get("desarrollo", "").strip(),
-            "compromisos":  data.get("compromisos", "").strip(),
+            "aspectos": data.get("aspectos", "").strip(),
+            "desarrollo": data.get("desarrollo", "").strip(),
+            "compromisos": data.get("compromisos", "").strip(),
         }
 
     finally:
-        try:
-            if os.path.exists(tmp.name):
+        if os.path.exists(tmp.name):
+            try:
                 os.unlink(tmp.name)
-        except Exception:
-            pass
-
+            except:
+                pass
 
 def construir_txt(titulo: str, resultado: dict) -> str:
     """Arma el archivo TXT final con resumen + transcript."""
     dur = resultado["duracion_seg"]
     mins, segs = divmod(int(dur), 60)
-
     separador = "═" * 60
 
     txt = f"""TRANSCRIPCIÓN DE REUNIÓN
