@@ -23,7 +23,7 @@ def _nombre_hablante(speaker_letter, speaker_names):
 
 def _config_transcripcion():
     return aai.TranscriptionConfig(
-        speech_model="best",
+        speech_models=["best"],
         speaker_labels=True,
         language_detection=True,
         redact_pii=True,
@@ -40,7 +40,7 @@ def _config_transcripcion():
 
 def _config_acta():
     return aai.TranscriptionConfig(
-        speech_model="best",
+        speech_models=["best"],
         speaker_labels=True,
         language_detection=True,
         redact_pii=True,
