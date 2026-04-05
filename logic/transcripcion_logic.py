@@ -1,5 +1,4 @@
 import os
-import io
 import tempfile
 import json as _json
 import assemblyai as aai
@@ -7,10 +6,12 @@ import assemblyai as aai
 # Configuración de API
 aai.settings.api_key = os.environ.get('ASSEMBLYAI_API_KEY', '')
 
+
 def _ts(ms):
     """Convierte milisegundos a [MM:SS]."""
     s = ms // 1000
     return f"[{s // 60:02d}:{s % 60:02d}]"
+
 
 def _nombre_hablante(speaker_letter, speaker_names):
     """Devuelve nombre real si fue mapeado, si no 'Hablante X'."""
@@ -19,66 +20,123 @@ def _nombre_hablante(speaker_letter, speaker_names):
         return speaker_names[key].strip()
     return f"Hablante {key}"
 
-def transcribir_y_resumir(audio_file, speaker_names: dict) -> dict:
-    """
-    Recibe un FileStorage de Flask y un dict {A: 'Arturo', B: 'German', ...}
-    Devuelve dict con: resumen_estructurado, transcript_formateado, idioma, duracion_seg
-    """
-    # ── 1. Guardar en archivo temporal ──────────────────────────────────────
+
+def _config_transcripcion():
+    return aai.TranscriptionConfig(
+        speech_model="best",
+        speaker_labels=True,
+        language_detection=True,
+        redact_pii=True,
+        redact_pii_policies=[
+            aai.PIIRedactionPolicy.email_address,
+            aai.PIIRedactionPolicy.phone_number,
+            aai.PIIRedactionPolicy.us_social_security_number,
+            aai.PIIRedactionPolicy.banking_information,
+            aai.PIIRedactionPolicy.credit_card_number,
+        ],
+        redact_pii_sub=aai.PIISubstitutionPolicy.hash,
+    )
+
+
+def _config_acta():
+    return aai.TranscriptionConfig(
+        speech_model="best",
+        speaker_labels=True,
+        language_detection=True,
+        redact_pii=True,
+        redact_pii_policies=[
+            aai.PIIRedactionPolicy.email_address,
+            aai.PIIRedactionPolicy.phone_number,
+        ],
+        redact_pii_sub=aai.PIISubstitutionPolicy.hash,
+    )
+
+
+def _guardar_audio_tmp(audio_file):
+    """Guarda FileStorage en un archivo temporal. Retorna la ruta."""
     suffix = os.path.splitext(audio_file.filename)[1] or '.mp3'
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-    
+    audio_file.save(tmp.name)
+    tmp.close()
+    return tmp.name
+
+
+# ── Transcripción de reunión ─────────────────────────────────────────────────
+
+def submit_transcripcion(audio_file, speaker_names: dict, titulo: str) -> str:
+    """
+    Envía el audio a AssemblyAI sin bloquear.
+    Guarda speaker_names y titulo en /tmp para recuperarlos luego.
+    Retorna transcript_id.
+    """
+    tmp_path = _guardar_audio_tmp(audio_file)
     try:
-        audio_file.save(tmp.name)
-        tmp.close()
-
-        # ── 2. Configurar y transcribir ──────────────────────────────────────
-        # SOLUCIÓN: Usamos speech_model="best" como string simple para evitar errores de tipo
-        config = aai.TranscriptionConfig(
-            speech_model="best", 
-            speaker_labels=True,
-            language_detection=True,
-            redact_pii=True,
-            redact_pii_policies=[
-                aai.PIIRedactionPolicy.email_address,
-                aai.PIIRedactionPolicy.phone_number,
-                aai.PIIRedactionPolicy.us_social_security_number,
-                aai.PIIRedactionPolicy.banking_information,
-                aai.PIIRedactionPolicy.credit_card_number,
-            ],
-            redact_pii_sub=aai.PIISubstitutionPolicy.hash,
-        )
-
         transcriber = aai.Transcriber()
-        transcript = transcriber.transcribe(tmp.name, config=config)
+        transcript = transcriber.submit(tmp_path, config=_config_transcripcion())
 
-        if transcript.status == aai.TranscriptStatus.error:
-            raise Exception(f"AssemblyAI error: {transcript.error}")
+        ctx_path = os.path.join(tempfile.gettempdir(), f"txn_{transcript.id}.json")
+        with open(ctx_path, 'w', encoding='utf-8') as f:
+            _json.dump({"speaker_names": speaker_names, "titulo": titulo}, f)
 
-        # ── 3. Formatear transcript con timestamps y hablantes ───────────────
-        lineas_transcript = []
-        for utt in (transcript.utterances or []):
-            nombre = _nombre_hablante(utt.speaker, speaker_names)
-            lineas_transcript.append(
-                f"{_ts(utt.start)} {nombre}:\n{utt.text}"
-            )
-        transcript_formateado = "\n\n".join(lineas_transcript)
+        return transcript.id
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
-        # ── 4. Mapeo de hablantes para el prompt ─────────────────────────────
-        hablantes_detectados = sorted(set(
-            u.speaker for u in (transcript.utterances or [])
-        ))
-        mapeo_str = ", ".join(
-            f"Hablante {sp} = {_nombre_hablante(sp, speaker_names)}"
-            for sp in hablantes_detectados
-        )
 
-        # ── 5. LeMUR: resumen estructurado ───────────────────────────────────
-        word_count = len(transcript.text.split()) if transcript.text else 0
-        target_words = max(250, int(word_count * 0.15))
-        idioma_label = transcript.language_code or "es"
+def get_transcript_status(transcript_id: str) -> dict:
+    """
+    Consulta el estado en AssemblyAI.
+    Retorna {"status": "queued|processing|completed|error", "error": "..."}
+    """
+    t = aai.Transcript.get_by_id(transcript_id)
+    status = t.status.value if hasattr(t.status, 'value') else str(t.status)
+    return {"status": status, "error": t.error or ""}
 
-        prompt = f"""Eres un secretario académico experto en redactar actas y resúmenes de reuniones.
+
+def finalizar_transcripcion(transcript_id: str) -> dict:
+    """
+    Asume que el transcript está completado.
+    Recupera contexto, formatea el transcript y llama LeMUR.
+    Retorna dict con resumen, transcript, idioma, duración, etc.
+    """
+    ctx_path = os.path.join(tempfile.gettempdir(), f"txn_{transcript_id}.json")
+    speaker_names, titulo = {}, ''
+    if os.path.exists(ctx_path):
+        with open(ctx_path, encoding='utf-8') as f:
+            ctx = _json.load(f)
+        speaker_names = ctx.get("speaker_names", {})
+        titulo = ctx.get("titulo", "")
+        try:
+            os.unlink(ctx_path)
+        except OSError:
+            pass
+
+    transcript = aai.Transcript.get_by_id(transcript_id)
+
+    if transcript.status == aai.TranscriptStatus.error:
+        raise Exception(f"AssemblyAI error: {transcript.error}")
+
+    # ── Formatear transcript ─────────────────────────────────────────────────
+    lineas = []
+    for utt in (transcript.utterances or []):
+        nombre = _nombre_hablante(utt.speaker, speaker_names)
+        lineas.append(f"{_ts(utt.start)} {nombre}:\n{utt.text}")
+    transcript_formateado = "\n\n".join(lineas)
+
+    # ── LeMUR ────────────────────────────────────────────────────────────────
+    hablantes = sorted(set(u.speaker for u in (transcript.utterances or [])))
+    mapeo_str = ", ".join(
+        f"Hablante {sp} = {_nombre_hablante(sp, speaker_names)}"
+        for sp in hablantes
+    )
+    word_count = len(transcript.text.split()) if transcript.text else 0
+    target_words = max(250, int(word_count * 0.15))
+    idioma_label = transcript.language_code or "es"
+
+    prompt = f"""Eres un secretario académico experto en redactar actas y resúmenes de reuniones.
 Analiza la siguiente transcripción de reunión y genera un resumen estructurado en el mismo idioma del audio (código: {idioma_label}).
 
 Mapeo de hablantes: {mapeo_str}
@@ -98,67 +156,57 @@ ACUERDOS Y COMPROMISOS
 
 No agregues introducciones, conclusiones ni texto fuera de estas tres secciones."""
 
-        try:
-            lemur_result = transcript.lemur.task(
-                prompt=prompt,
-                final_model=aai.LemurModel.claude3_5_sonnet,
-            )
-            resumen = lemur_result.response.strip()
-        except Exception as e:
-            resumen = f"ADVERTENCIA: No se pudo generar el resumen automático (LeMUR no disponible en esta cuenta).\nError: {str(e)}"
-
-        # ── 6. Duración ──────────────────────────────────────────────────────
-        duracion_seg = (transcript.audio_duration or 0)
-
-        return {
-            "resumen_estructurado": resumen,
-            "transcript_formateado": transcript_formateado,
-            "idioma": idioma_label,
-            "duracion_seg": duracion_seg,
-            "word_count": word_count,
-        }
-
-    finally:
-        if os.path.exists(tmp.name):
-            try:
-                os.unlink(tmp.name)
-            except:
-                pass
-
-def extraer_notas_desde_audio(audio_file) -> dict:
-    """
-    Transcribe el audio y extrae las 3 secciones para el Acta Técnica.
-    Devuelve dict con claves: aspectos, desarrollo, compromisos.
-    """
-    suffix = os.path.splitext(audio_file.filename)[1] or '.mp3'
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-    
     try:
-        audio_file.save(tmp.name)
-        tmp.close()
-
-        # SOLUCIÓN: Aplicado el mismo cambio aquí para evitar el error de tipado
-        config = aai.TranscriptionConfig(
-            speech_model="best",
-            speaker_labels=True,
-            language_detection=True,
-            redact_pii=True,
-            redact_pii_policies=[
-                aai.PIIRedactionPolicy.email_address,
-                aai.PIIRedactionPolicy.phone_number,
-            ],
-            redact_pii_sub=aai.PIISubstitutionPolicy.hash,
+        lemur_result = transcript.lemur.task(
+            prompt=prompt,
+            final_model=aai.LemurModel.claude3_5_sonnet,
         )
+        resumen = lemur_result.response.strip()
+    except Exception as e:
+        resumen = f"ADVERTENCIA: No se pudo generar el resumen automático (LeMUR no disponible en esta cuenta).\nError: {str(e)}"
 
+    return {
+        "resumen_estructurado": resumen,
+        "transcript_formateado": transcript_formateado,
+        "idioma": idioma_label,
+        "duracion_seg": transcript.audio_duration or 0,
+        "word_count": word_count,
+        "titulo": titulo,
+    }
+
+
+# ── Acta técnica ─────────────────────────────────────────────────────────────
+
+def submit_audio_acta(audio_file) -> str:
+    """
+    Envía el audio de acta a AssemblyAI sin bloquear.
+    Retorna transcript_id.
+    """
+    tmp_path = _guardar_audio_tmp(audio_file)
+    try:
         transcriber = aai.Transcriber()
-        transcript = transcriber.transcribe(tmp.name, config=config)
+        transcript = transcriber.submit(tmp_path, config=_config_acta())
+        return transcript.id
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
-        if transcript.status == aai.TranscriptStatus.error:
-            raise Exception(f"AssemblyAI error: {transcript.error}")
 
-        idioma_label = transcript.language_code or "es"
+def finalizar_acta(transcript_id: str) -> dict:
+    """
+    Asume que el transcript está completado.
+    Corre LeMUR y retorna las notas para el Acta Técnica.
+    """
+    transcript = aai.Transcript.get_by_id(transcript_id)
 
-        prompt = f"""Eres un asistente experto en redactar actas institucionales.
+    if transcript.status == aai.TranscriptStatus.error:
+        raise Exception(f"AssemblyAI error: {transcript.error}")
+
+    idioma_label = transcript.language_code or "es"
+
+    prompt = f"""Eres un asistente experto en redactar actas institucionales.
 A partir de la transcripción de reunión provista, extrae la información necesaria para completar un Acta Técnica.
 
 Responde ÚNICAMENTE con un objeto JSON válido con exactamente estas 3 claves:
@@ -171,38 +219,31 @@ Responde ÚNICAMENTE con un objeto JSON válido con exactamente estas 3 claves:
 
 Redacta en el mismo idioma del audio (código: {idioma_label})."""
 
-        try:
-            lemur_result = transcript.lemur.task(
-                prompt=prompt,
-                final_model=aai.LemurModel.claude3_5_sonnet,
-            )
-
-            raw = lemur_result.response.strip()
-            # Limpiar bloques de código markdown
-            if raw.startswith('```'):
-                raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
-                raw = raw.rsplit('```', 1)[0].strip()
-
-            data = _json.loads(raw)
-        except Exception:
-            data = {
-                "aspectos": "Error: Acceso a LeMUR denegado o JSON inválido.",
-                "desarrollo": "No se pudo procesar el análisis por restricciones de la cuenta API.",
-                "compromisos": "No disponible."
-            }
-
-        return {
-            "aspectos": data.get("aspectos", "").strip(),
-            "desarrollo": data.get("desarrollo", "").strip(),
-            "compromisos": data.get("compromisos", "").strip(),
+    try:
+        lemur_result = transcript.lemur.task(
+            prompt=prompt,
+            final_model=aai.LemurModel.claude3_5_sonnet,
+        )
+        raw = lemur_result.response.strip()
+        if raw.startswith('```'):
+            raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+            raw = raw.rsplit('```', 1)[0].strip()
+        data = _json.loads(raw)
+    except Exception:
+        data = {
+            "aspectos": "Error: Acceso a LeMUR denegado o JSON inválido.",
+            "desarrollo": "No se pudo procesar el análisis por restricciones de la cuenta API.",
+            "compromisos": "No disponible."
         }
 
-    finally:
-        if os.path.exists(tmp.name):
-            try:
-                os.unlink(tmp.name)
-            except:
-                pass
+    return {
+        "aspectos": data.get("aspectos", "").strip(),
+        "desarrollo": data.get("desarrollo", "").strip(),
+        "compromisos": data.get("compromisos", "").strip(),
+    }
+
+
+# ── Helpers de salida ─────────────────────────────────────────────────────────
 
 def construir_txt(titulo: str, resultado: dict) -> str:
     """Arma el archivo TXT final con resumen + transcript."""
@@ -210,7 +251,7 @@ def construir_txt(titulo: str, resultado: dict) -> str:
     mins, segs = divmod(int(dur), 60)
     separador = "═" * 60
 
-    txt = f"""TRANSCRIPCIÓN DE REUNIÓN
+    return f"""TRANSCRIPCIÓN DE REUNIÓN
 {'=' * 60}
 Título    : {titulo or 'Sin título'}
 Idioma    : {resultado['idioma'].upper()}
@@ -226,4 +267,3 @@ TRANSCRIPCIÓN COMPLETA
 
 {resultado['transcript_formateado']}
 """
-    return txt

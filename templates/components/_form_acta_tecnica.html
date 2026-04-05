@@ -192,17 +192,33 @@ function extraerNotasDesdeAudio() {
 
     btn.disabled       = true;
     btn.textContent    = '⏳ Procesando...';
-    estado.textContent = 'Transcribiendo y analizando con IA… esto puede tardar unos minutos.';
+    estado.textContent = 'Enviando audio a AssemblyAI...';
     estado.style.color = '#64748b';
 
     const fd = new FormData();
     fd.append('audio_acta', fileInput.files[0]);
 
-    fetch('/util/acta_extraer_audio', { method: 'POST', body: fd })
+    // ── Paso 1: Submit ────────────────────────────────────────────────────────
+    fetch('/util/acta_extraer_audio/submit', { method: 'POST', body: fd })
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Error al enviar el audio');
+            return data.transcript_id;
+        })
+        .then(transcriptId => {
+            estado.textContent = '⏳ Transcribiendo audio con IA...';
+            // ── Paso 2: Poll status ───────────────────────────────────────────
+            return esperarTranscriptActa(transcriptId);
+        })
+        .then(transcriptId => {
+            estado.textContent = '⏳ Generando notas con LeMUR...';
+            // ── Paso 3: Obtener resultado ─────────────────────────────────────
+            return fetch(`/util/acta_extraer_audio/resultado/${transcriptId}`);
+        })
         .then(async res => {
             if (!res.ok) {
                 const data = await res.json().catch(() => ({ error: 'Error desconocido' }));
-                throw new Error(data.error || 'Error en el servidor');
+                throw new Error(data.error || 'Error al generar notas');
             }
             return res.json();
         })
@@ -221,6 +237,31 @@ function extraerNotasDesdeAudio() {
             btn.disabled    = false;
             btn.textContent = '🤖 Extraer notas con IA';
         });
+}
+
+function esperarTranscriptActa(transcriptId) {
+    return new Promise((resolve, reject) => {
+        const intervalo = setInterval(() => {
+            fetch(`/util/acta_extraer_audio/status/${transcriptId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error && !data.status) {
+                        clearInterval(intervalo);
+                        reject(new Error(data.error));
+                    } else if (data.status === 'completed') {
+                        clearInterval(intervalo);
+                        resolve(transcriptId);
+                    } else if (data.status === 'error') {
+                        clearInterval(intervalo);
+                        reject(new Error(data.error || 'Error en la transcripción'));
+                    }
+                })
+                .catch(err => {
+                    clearInterval(intervalo);
+                    reject(err);
+                });
+        }, 5000);
+    });
 }
 
 // ── Add participante ─────────────────────────────────────────────────────────
