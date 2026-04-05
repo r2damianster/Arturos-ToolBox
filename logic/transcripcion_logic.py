@@ -2,9 +2,12 @@ import os
 import tempfile
 import json as _json
 import assemblyai as aai
+from groq import Groq
 
-# Configuración de API
+# Configuración de APIs
 aai.settings.api_key = os.environ.get('ASSEMBLYAI_API_KEY', '')
+_groq_client = Groq(api_key=os.environ.get('GROQ_API_KEY', '')) if os.environ.get('GROQ_API_KEY') else None
+_GROQ_MODEL = "llama-3.3-70b-versatile"
 
 
 def _ts(ms):
@@ -21,34 +24,11 @@ def _nombre_hablante(speaker_letter, speaker_names):
     return f"Hablante {key}"
 
 
-def _config_transcripcion():
+def _config_base():
+    """Configuración mínima de transcripción (sin funcionalidades de pago)."""
     return aai.TranscriptionConfig(
-        speech_models=["best"],
         speaker_labels=True,
         language_detection=True,
-        redact_pii=True,
-        redact_pii_policies=[
-            aai.PIIRedactionPolicy.email_address,
-            aai.PIIRedactionPolicy.phone_number,
-            aai.PIIRedactionPolicy.us_social_security_number,
-            aai.PIIRedactionPolicy.banking_information,
-            aai.PIIRedactionPolicy.credit_card_number,
-        ],
-        redact_pii_sub=aai.PIISubstitutionPolicy.hash,
-    )
-
-
-def _config_acta():
-    return aai.TranscriptionConfig(
-        speech_models=["best"],
-        speaker_labels=True,
-        language_detection=True,
-        redact_pii=True,
-        redact_pii_policies=[
-            aai.PIIRedactionPolicy.email_address,
-            aai.PIIRedactionPolicy.phone_number,
-        ],
-        redact_pii_sub=aai.PIISubstitutionPolicy.hash,
     )
 
 
@@ -72,7 +52,7 @@ def submit_transcripcion(audio_file, speaker_names: dict, titulo: str) -> str:
     tmp_path = _guardar_audio_tmp(audio_file)
     try:
         transcriber = aai.Transcriber()
-        transcript = transcriber.submit(tmp_path, config=_config_transcripcion())
+        transcript = transcriber.submit(tmp_path, config=_config_base())
 
         ctx_path = os.path.join(tempfile.gettempdir(), f"txn_{transcript.id}.json")
         with open(ctx_path, 'w', encoding='utf-8') as f:
@@ -99,8 +79,7 @@ def get_transcript_status(transcript_id: str) -> dict:
 def finalizar_transcripcion(transcript_id: str) -> dict:
     """
     Asume que el transcript está completado.
-    Recupera contexto, formatea el transcript y llama LeMUR.
-    Retorna dict con resumen, transcript, idioma, duración, etc.
+    Formatea el transcript y genera resumen con Groq (gratis).
     """
     ctx_path = os.path.join(tempfile.gettempdir(), f"txn_{transcript_id}.json")
     speaker_names, titulo = {}, ''
@@ -119,51 +98,57 @@ def finalizar_transcripcion(transcript_id: str) -> dict:
     if transcript.status == aai.TranscriptStatus.error:
         raise Exception(f"AssemblyAI error: {transcript.error}")
 
-    # ── Formatear transcript ─────────────────────────────────────────────────
+    # ── Formatear transcript con timestamps y hablantes ──────────────────────
     lineas = []
     for utt in (transcript.utterances or []):
         nombre = _nombre_hablante(utt.speaker, speaker_names)
         lineas.append(f"{_ts(utt.start)} {nombre}:\n{utt.text}")
     transcript_formateado = "\n\n".join(lineas)
 
-    # ── LeMUR ────────────────────────────────────────────────────────────────
+    idioma_label = transcript.language_code or "es"
+    word_count = len(transcript.text.split()) if transcript.text else 0
+
+    # ── Resumen con Groq ─────────────────────────────────────────────────────
     hablantes = sorted(set(u.speaker for u in (transcript.utterances or [])))
     mapeo_str = ", ".join(
         f"Hablante {sp} = {_nombre_hablante(sp, speaker_names)}"
         for sp in hablantes
     )
-    word_count = len(transcript.text.split()) if transcript.text else 0
     target_words = max(250, int(word_count * 0.15))
-    idioma_label = transcript.language_code or "es"
 
-    prompt = f"""Eres un secretario académico experto en redactar actas y resúmenes de reuniones.
-Analiza la siguiente transcripción de reunión y genera un resumen estructurado en el mismo idioma del audio (código: {idioma_label}).
-
+    resumen = ""
+    if _groq_client and transcript.text:
+        try:
+            prompt = f"""Eres un secretario académico experto en redactar actas y resúmenes de reuniones.
+Analiza la siguiente transcripción y genera un resumen estructurado en el idioma del audio (código: {idioma_label}).
 Mapeo de hablantes: {mapeo_str}
+El resumen debe tener aproximadamente {target_words} palabras (mínimo 250).
 
-El resumen debe tener aproximadamente {target_words} palabras (mínimo 250 palabras).
-
-Usa EXACTAMENTE esta estructura con estos encabezados:
+Usa EXACTAMENTE esta estructura:
 
 PUNTOS TRATADOS
-(Lista numerada de los temas principales discutidos en la reunión)
+(Lista numerada de los temas principales discutidos)
 
 DESARROLLO DE LA REUNIÓN
-(Narrativo fluido en tercera persona. Menciona explícitamente quién dijo qué usando el nombre real del hablante. Ejemplo: "Arturo mencionó que...", "Germán señaló que...", "Se discutió entre los participantes...". Resume el contenido esencial sin transcribir literalmente.)
+(Narrativo en tercera persona. Menciona quién dijo qué usando el nombre real. Ejemplo: "Arturo mencionó que...", "Se discutió entre los participantes...")
 
 ACUERDOS Y COMPROMISOS
-(Lista de decisiones tomadas y compromisos asumidos durante la reunión. Si no hay acuerdos explícitos, indica "No se registraron acuerdos formales.")
+(Lista de decisiones tomadas. Si no hay, escribe: "No se registraron acuerdos formales.")
 
-No agregues introducciones, conclusiones ni texto fuera de estas tres secciones."""
+No agregues texto fuera de estas tres secciones.
 
-    try:
-        lemur_result = transcript.lemur.task(
-            prompt=prompt,
-            final_model=aai.LemurModel.claude3_5_sonnet,
-        )
-        resumen = lemur_result.response.strip()
-    except Exception as e:
-        resumen = f"ADVERTENCIA: No se pudo generar el resumen automático (LeMUR no disponible en esta cuenta).\nError: {str(e)}"
+TRANSCRIPCIÓN:
+{transcript.text[:8000]}"""
+
+            resp = _groq_client.chat.completions.create(
+                model=_GROQ_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=1500,
+            )
+            resumen = resp.choices[0].message.content.strip()
+        except Exception as e:
+            resumen = f"[Resumen no disponible: {str(e)}]"
 
     return {
         "resumen_estructurado": resumen,
@@ -185,7 +170,7 @@ def submit_audio_acta(audio_file) -> str:
     tmp_path = _guardar_audio_tmp(audio_file)
     try:
         transcriber = aai.Transcriber()
-        transcript = transcriber.submit(tmp_path, config=_config_acta())
+        transcript = transcriber.submit(tmp_path, config=_config_base())
         return transcript.id
     finally:
         try:
@@ -197,7 +182,7 @@ def submit_audio_acta(audio_file) -> str:
 def finalizar_acta(transcript_id: str) -> dict:
     """
     Asume que el transcript está completado.
-    Corre LeMUR y retorna las notas para el Acta Técnica.
+    Usa Groq para extraer las notas del Acta Técnica.
     """
     transcript = aai.Transcript.get_by_id(transcript_id)
 
@@ -205,35 +190,47 @@ def finalizar_acta(transcript_id: str) -> dict:
         raise Exception(f"AssemblyAI error: {transcript.error}")
 
     idioma_label = transcript.language_code or "es"
+    texto = transcript.text or ""
 
-    prompt = f"""Eres un asistente experto en redactar actas institucionales.
-A partir de la transcripción de reunión provista, extrae la información necesaria para completar un Acta Técnica.
+    if not _groq_client or not texto:
+        return {
+            "aspectos": "No se pudo procesar el audio.",
+            "desarrollo": "Servicio de IA no configurado o transcripción vacía.",
+            "compromisos": "No disponible.",
+        }
 
-Responde ÚNICAMENTE con un objeto JSON válido con exactamente estas 3 claves:
+    try:
+        prompt = f"""Eres un asistente experto en redactar actas institucionales.
+A partir de esta transcripción, extrae información para un Acta Técnica.
+Responde ÚNICAMENTE con un JSON válido con exactamente estas 3 claves:
 
 {{
   "aspectos": "Lista de los puntos del orden del día tratados, separados por comas.",
-  "desarrollo": "Resumen breve en 3-5 oraciones de lo que sucedió en la reunión, en tercera persona.",
-  "compromisos": "Lista de los acuerdos y compromisos asumidos. Si no hubo, escribe: No se registraron acuerdos formales."
+  "desarrollo": "Resumen breve en 3-5 oraciones de lo sucedido, en tercera persona.",
+  "compromisos": "Lista de acuerdos y compromisos. Si no hubo, escribe: No se registraron acuerdos formales."
 }}
 
-Redacta en el mismo idioma del audio (código: {idioma_label})."""
+Idioma del audio: {idioma_label}
 
-    try:
-        lemur_result = transcript.lemur.task(
-            prompt=prompt,
-            final_model=aai.LemurModel.claude3_5_sonnet,
+TRANSCRIPCIÓN:
+{texto[:8000]}"""
+
+        resp = _groq_client.chat.completions.create(
+            model=_GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+            max_tokens=600,
         )
-        raw = lemur_result.response.strip()
+        raw = resp.choices[0].message.content.strip()
         if raw.startswith('```'):
             raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
             raw = raw.rsplit('```', 1)[0].strip()
         data = _json.loads(raw)
-    except Exception:
+    except Exception as e:
         data = {
-            "aspectos": "Error: Acceso a LeMUR denegado o JSON inválido.",
-            "desarrollo": "No se pudo procesar el análisis por restricciones de la cuenta API.",
-            "compromisos": "No disponible."
+            "aspectos": f"Error al procesar: {str(e)}",
+            "desarrollo": "No se pudo extraer el desarrollo.",
+            "compromisos": "No disponible.",
         }
 
     return {
@@ -243,27 +240,32 @@ Redacta en el mismo idioma del audio (código: {idioma_label})."""
     }
 
 
-# ── Helpers de salida ─────────────────────────────────────────────────────────
+# ── Helper de salida ──────────────────────────────────────────────────────────
 
 def construir_txt(titulo: str, resultado: dict) -> str:
     """Arma el archivo TXT final con resumen + transcript."""
     dur = resultado["duracion_seg"]
     mins, segs = divmod(int(dur), 60)
-    separador = "═" * 60
+    sep = "═" * 60
 
-    return f"""TRANSCRIPCIÓN DE REUNIÓN
-{'=' * 60}
-Título    : {titulo or 'Sin título'}
-Idioma    : {resultado['idioma'].upper()}
-Duración  : {mins}m {segs}s
-Palabras  : {resultado['word_count']}
-{separador}
+    partes = [
+        f"TRANSCRIPCIÓN DE REUNIÓN",
+        f"{'=' * 60}",
+        f"Título    : {titulo or 'Sin título'}",
+        f"Idioma    : {resultado['idioma'].upper()}",
+        f"Duración  : {mins}m {segs}s",
+        f"Palabras  : {resultado['word_count']}",
+        sep,
+    ]
 
-{resultado['resumen_estructurado']}
+    if resultado.get("resumen_estructurado"):
+        partes += ["", resultado["resumen_estructurado"], "", sep]
 
-{separador}
-TRANSCRIPCIÓN COMPLETA
-{separador}
+    partes += [
+        "TRANSCRIPCIÓN COMPLETA",
+        sep,
+        "",
+        resultado["transcript_formateado"],
+    ]
 
-{resultado['transcript_formateado']}
-"""
+    return "\n".join(partes)
