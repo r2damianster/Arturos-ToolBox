@@ -358,7 +358,8 @@ def convertir_a_pdf(archivos: list) -> bytes:
                 pdf.cell(0, 8, txt=linea[:200], ln=True)
 
             nombre_pdf = f"PDF_{os.path.splitext(f.filename)[0]}.pdf"
-            zf.writestr(nombre_pdf, pdf.output(dest="S").encode("latin-1"))
+            pdf_output = pdf.output(dest="S").encode("latin-1", errors="ignore")
+            zf.writestr(nombre_pdf, pdf_output)
 
     buf_zip.seek(0)
     return buf_zip.read()

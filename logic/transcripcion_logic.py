@@ -25,9 +25,8 @@ def _nombre_hablante(speaker_letter, speaker_names):
 
 
 def _config_base():
-    """Configuración mínima de transcripción (sin funcionalidades de pago)."""
+    """Configuración mínima de transcripción (plan gratuito, sin speech_models)."""
     return aai.TranscriptionConfig(
-        speaker_labels=True,
         language_detection=True,
     )
 
@@ -100,28 +99,36 @@ def finalizar_transcripcion(transcript_id: str) -> dict:
 
     # ── Formatear transcript con timestamps y hablantes ──────────────────────
     lineas = []
-    for utt in (transcript.utterances or []):
-        nombre = _nombre_hablante(utt.speaker, speaker_names)
-        lineas.append(f"{_ts(utt.start)} {nombre}:\n{utt.text}")
+    utterances = transcript.utterances or []
+    if utterances and hasattr(utterances[0], 'speaker') and utterances[0].speaker:
+        # Con speaker_labels (requiere plan de pago)
+        for utt in utterances:
+            nombre = _nombre_hablante(utt.speaker, speaker_names)
+            lineas.append(f"{_ts(utt.start)} {nombre}:\n{utt.text}")
+    else:
+        # Sin speaker_labels (plan gratuito): texto simple con timestamps si están disponibles
+        for utt in utterances:
+            start_ms = getattr(utt, 'start', 0)
+            lineas.append(f"{_ts(start_ms)} {utt.text}")
+        # Si no hay utterances, usar texto completo
+        if not lineas and transcript.text:
+            lineas.append(transcript.text)
     transcript_formateado = "\n\n".join(lineas)
 
     idioma_label = transcript.language_code or "es"
     word_count = len(transcript.text.split()) if transcript.text else 0
 
     # ── Resumen con Groq ─────────────────────────────────────────────────────
-    hablantes = sorted(set(u.speaker for u in (transcript.utterances or [])))
-    mapeo_str = ", ".join(
-        f"Hablante {sp} = {_nombre_hablante(sp, speaker_names)}"
-        for sp in hablantes
-    )
+    mapeo_str = ""
     target_words = max(250, int(word_count * 0.15))
 
     resumen = ""
     if _groq_client and transcript.text:
         try:
+            hablantes_info = f"Mapeo de hablantes: {mapeo_str}" if mapeo_str else "No se detectaron hablantes (plan gratuito). Usa 'Habla X' o 'Participante X' si se pueden diferenciar."
             prompt = f"""Eres un secretario académico experto en redactar actas y resúmenes de reuniones.
 Analiza la siguiente transcripción y genera un resumen estructurado en el idioma del audio (código: {idioma_label}).
-Mapeo de hablantes: {mapeo_str}
+{hablantes_info}
 El resumen debe tener aproximadamente {target_words} palabras (mínimo 250).
 
 Usa EXACTAMENTE esta estructura:
@@ -130,7 +137,7 @@ PUNTOS TRATADOS
 (Lista numerada de los temas principales discutidos)
 
 DESARROLLO DE LA REUNIÓN
-(Narrativo en tercera persona. Menciona quién dijo qué usando el nombre real. Ejemplo: "Arturo mencionó que...", "Se discutió entre los participantes...")
+(Narrativo en tercera persona. Menciona quién dijo qué si es posible identificar participantes.)
 
 ACUERDOS Y COMPROMISOS
 (Lista de decisiones tomadas. Si no hay, escribe: "No se registraron acuerdos formales.")
