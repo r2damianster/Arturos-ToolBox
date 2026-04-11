@@ -106,8 +106,11 @@ class ActaTecnicaLogic:
         # Lista de participantes para la tabla
         participantes_lista = "\n".join(f"{p['nombre']} — {p['cargo']}" for p in participantes)
 
-        # Firmantes: convocante + participantes (sin límite)
-        firmantes = [{"nombre": nombre_conv, "cargo": cargo_conv}] + participantes
+        # Firmantes: convocante + participantes (hasta 10)
+        firmantes = [{"nombre": nombre_conv, "cargo": cargo_conv}] + participantes[:9]
+        # Rellenar hasta 10 slots vacíos si hay menos
+        while len(firmantes) < 10:
+            firmantes.append({"nombre": "", "cargo": ""})
 
         # Contexto para docxtpl
         context = {
@@ -124,8 +127,12 @@ class ActaTecnicaLogic:
             "compromisos_ia":      com,
             "elaborado_titulo":    elab_titulo,
             "elaborado_nombre":    elab_nombre,
-            "firmantes":           firmantes,
         }
+
+        # Agregar firmantes individuales al contexto
+        for i, f in enumerate(firmantes, 1):
+            context[f"firmante_{i}_nombre"] = f["nombre"]
+            context[f"firmante_{i}_cargo"] = f["cargo"]
 
         logic_dir     = os.path.dirname(os.path.abspath(__file__))
         root_dir      = os.path.dirname(logic_dir)
