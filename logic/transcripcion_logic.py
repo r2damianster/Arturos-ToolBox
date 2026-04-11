@@ -25,10 +25,10 @@ def _nombre_hablante(speaker_letter, speaker_names):
 
 
 def _config_base():
-    """Configuración mínima de transcripción (plan gratuito, sin speech_models)."""
-    return aai.TranscriptionConfig(
-        language_detection=True,
-    )
+    """Sin configuración: usa los defaults de AssemblyAI (free tier)."""
+    # No pasar ninguna config — AssemblyAI exige speech_models si se activa
+    # cualquier feature. Sin config, transcribe con defaults del free tier.
+    return None
 
 
 def _guardar_audio_tmp(audio_file):
@@ -51,7 +51,8 @@ def submit_transcripcion(audio_file, speaker_names: dict, titulo: str) -> str:
     tmp_path = _guardar_audio_tmp(audio_file)
     try:
         transcriber = aai.Transcriber()
-        transcript = transcriber.submit(tmp_path, config=_config_base())
+        config = _config_base()
+        transcript = transcriber.submit(tmp_path, config=config) if config else transcriber.submit(tmp_path)
 
         ctx_path = os.path.join(tempfile.gettempdir(), f"txn_{transcript.id}.json")
         with open(ctx_path, 'w', encoding='utf-8') as f:
@@ -177,7 +178,8 @@ def submit_audio_acta(audio_file) -> str:
     tmp_path = _guardar_audio_tmp(audio_file)
     try:
         transcriber = aai.Transcriber()
-        transcript = transcriber.submit(tmp_path, config=_config_base())
+        config = _config_base()
+        transcript = transcriber.submit(tmp_path, config=config) if config else transcriber.submit(tmp_path)
         return transcript.id
     finally:
         try:
