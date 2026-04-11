@@ -73,8 +73,11 @@ def generar_qr(texto: str) -> bytes:
     qr.add_data(texto)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
+    # Convert to RGB if necessary (for JPEG format)
+    if img.mode not in ('RGB', 'L'):
+        img = img.convert('RGB')
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    img.save(buf, format="JPEG", quality=95)
     buf.seek(0)
     return buf.read()
 
@@ -192,6 +195,49 @@ def unir_imagenes_a_pdf(archivos_imagen: list) -> bytes:
     return buf.read()
 
 
+def unir_imagenes_a_jpg(archivos_imagen: list, orientacion: str = "vertical") -> bytes:
+    """Une varias imágenes en una sola imagen JPG."""
+    imagenes = []
+    for f in archivos_imagen:
+        img = Image.open(f.stream)
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+        imagenes.append(img)
+
+    if not imagenes:
+        raise ValueError("No se proporcionaron imágenes.")
+
+    if len(imagenes) == 1:
+        buf = io.BytesIO()
+        imagenes[0].save(buf, format="JPEG", quality=95)
+        buf.seek(0)
+        return buf.read()
+
+    if orientacion == "horizontal":
+        ancho_total = sum(img.width for img in imagenes)
+        alto_maximo = max(img.height for img in imagenes)
+        resultado = Image.new("RGB", (ancho_total, alto_maximo), color="white")
+        x_offset = 0
+        for img in imagenes:
+            y_offset = (alto_maximo - img.height) // 2
+            resultado.paste(img, (x_offset, y_offset))
+            x_offset += img.width
+    else:  # vertical por defecto
+        ancho_maximo = max(img.width for img in imagenes)
+        alto_total = sum(img.height for img in imagenes)
+        resultado = Image.new("RGB", (ancho_maximo, alto_total), color="white")
+        y_offset = 0
+        for img in imagenes:
+            x_offset = (ancho_maximo - img.width) // 2
+            resultado.paste(img, (x_offset, y_offset))
+            y_offset += img.height
+
+    buf = io.BytesIO()
+    resultado.save(buf, format="JPEG", quality=95)
+    buf.seek(0)
+    return buf.read()
+
+
 # ─────────────────────────────────────────────
 # 5. Aplanar archivos → ZIP
 # ─────────────────────────────────────────────
@@ -271,10 +317,26 @@ def generar_excels(tipo: str, cantidad: int) -> bytes:
 def crear_estructura_carpetas(nombres: list) -> bytes:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
-        for nombre in nombres:
-            nombre = nombre.strip()
-            if nombre:
-                zf.writestr(f"{nombre}/.gitkeep", "")
+        carpetas_creadas = set()
+        
+        for linea in nombres:
+            linea = linea.strip()
+            if not linea:
+                continue
+            
+            # Soporta sintaxis: "carpeta/subcarpeta/subsubcarpeta"
+            partes = [p.strip() for p in linea.replace("\\", "/").split("/") if p.strip()]
+            
+            ruta_acumulada = ""
+            for i, parte in enumerate(partes):
+                ruta_anterior = ruta_acumulada
+                ruta_acumulada = f"{ruta_acumulada}/{parte}" if ruta_acumulada else parte
+                
+                # Evita crear duplicados
+                if ruta_acumulada not in carpetas_creadas:
+                    zf.writestr(f"{ruta_acumulada}/.gitkeep", "")
+                    carpetas_creadas.add(ruta_acumulada)
+    
     buf.seek(0)
     return buf.read()
 

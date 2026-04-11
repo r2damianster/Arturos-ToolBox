@@ -13,9 +13,9 @@
             <img id="qr-imagen" src="" alt="Código QR"
                  style="max-width:280px; border:1px solid #ddd; padding:10px; border-radius:6px;">
             <br><br>
-            <a id="qr-descarga" href="#" download="codigo_qr.png" class="submit-btn"
+            <a id="qr-descarga" href="#" download="codigo_qr.jpg" class="submit-btn"
                style="display:inline-block; width:auto; padding:12px 30px; text-decoration:none;">
-                ⬇️ Descargar PNG
+                ⬇️ Descargar JPG
             </a>
         </fieldset>
     </div>
@@ -31,7 +31,7 @@ function generarQR() {
     fetch('/util/qr', { method: 'POST', body: fd })
         .then(r => r.json())
         .then(data => {
-            const src = 'data:image/png;base64,' + data.imagen;
+            const src = 'data:image/jpeg;base64,' + data.imagen;
             document.getElementById('qr-imagen').src = src;
             document.getElementById('qr-descarga').href = src;
             document.getElementById('qr-resultado').style.display = 'block';

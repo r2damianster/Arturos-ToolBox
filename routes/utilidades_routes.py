@@ -8,6 +8,7 @@ from logic.utilidades import (
     generar_qr,
     generar_pptx,
     unir_imagenes_a_pdf,
+    unir_imagenes_a_jpg,
     aplanar_archivos,
     generar_excels,
     crear_estructura_carpetas,
@@ -70,6 +71,20 @@ def util_unir_imagenes():
         pdf_bytes = unir_imagenes_a_pdf(archivos)
         return send_file(io.BytesIO(pdf_bytes), as_attachment=True,
                          download_name="imagenes_unidas.pdf", mimetype="application/pdf")
+    except Exception as e:
+        return f"Error: {e}", 500
+
+
+@utilidades_bp.route("/util/unir-imagenes-jpg", methods=["POST"])
+def util_unir_imagenes_jpg():
+    archivos = request.files.getlist("imagenes")
+    if not archivos or archivos[0].filename == "":
+        return "No se recibieron imágenes.", 400
+    orientacion = request.form.get("orientacion", "vertical")
+    try:
+        jpg_bytes = unir_imagenes_a_jpg(archivos, orientacion=orientacion)
+        return send_file(io.BytesIO(jpg_bytes), as_attachment=True,
+                         download_name="imagenes_unidas.jpg", mimetype="image/jpeg")
     except Exception as e:
         return f"Error: {e}", 500
 
