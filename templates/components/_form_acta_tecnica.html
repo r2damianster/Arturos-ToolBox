@@ -73,7 +73,18 @@
 
         <!-- 4. Notas para la IA -->
         <fieldset>
-            <legend>4. Notas para la IA</legend>
+            <legend>4. Notas para el Acta</legend>
+
+            <!-- Botón enriquecer con IA -->
+            <div style="margin-bottom:16px;padding:12px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <button type="button" id="btn-enriquecer-acta" onclick="enriquecerActaConIA()"
+                        style="padding:8px 20px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.9em;">
+                        ✨ Enriquecer con IA
+                    </button>
+                    <span id="ia-acta-status" style="font-size:0.85rem;color:#64748b;"></span>
+                </div>
+            </div>
 
             <!-- Toggle manual / audio -->
             <div style="display:flex;gap:8px;margin-bottom:16px;">
@@ -262,6 +273,73 @@ function esperarTranscriptActa(transcriptId) {
                 });
         }, 5000);
     });
+}
+
+// ── Enriquecer con IA (Acta) ────────────────────────────────────────────────
+function enriquecerActaConIA() {
+    const aspectos    = document.getElementById('notas_aspectos').value;
+    const reunion     = document.getElementById('notas_reunion').value;
+    const compromisos = document.getElementById('notas_compromisos').value;
+    const statusEl    = document.getElementById('ia-acta-status');
+    const btn         = document.getElementById('btn-enriquecer-acta');
+
+    if (!aspectos && !reunion && !compromisos) {
+        statusEl.textContent = '⚠️ Escribe algo en al menos un campo.';
+        statusEl.style.color = '#dc2626';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Procesando...';
+    statusEl.textContent = 'Enviando a IA...';
+    statusEl.style.color = '#64748b';
+
+    const campos = [
+        { id: 'notas_aspectos',    ctx: 'acta_aspectos',    val: aspectos },
+        { id: 'notas_reunion',     ctx: 'acta_desarrollo',  val: reunion },
+        { id: 'notas_compromisos', ctx: 'acta_compromisos', val: compromisos },
+    ].filter(c => c.val && c.val.trim().length >= 3);
+
+    if (campos.length === 0) {
+        btn.disabled = false;
+        btn.textContent = '✨ Enriquecer con IA';
+        statusEl.textContent = '⚠️ Texto muy corto.';
+        statusEl.style.color = '#dc2626';
+        return;
+    }
+
+    const promises = campos.map(c =>
+        fetch('/util/ia_enriquecer', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ contexto: c.ctx, texto: c.val })
+        }).then(async r => {
+            const data = await r.json();
+            if (!r.ok) {
+                throw new Error(data.cooldown_formatted
+                    ? `Espera ${data.cooldown_formatted}`
+                    : data.error || 'Error');
+            }
+            return { id: c.id, texto: data.texto_enriquecido };
+        })
+    );
+
+    Promise.all(promises)
+        .then(results => {
+            results.forEach(r => {
+                document.getElementById(r.id).value = r.texto;
+            });
+            statusEl.textContent = '✅ Texto enriquecido. Podés editarlo.';
+            statusEl.style.color = '#16a34a';
+        })
+        .catch(err => {
+            statusEl.textContent = `❌ ${err.message}`;
+            statusEl.style.color = '#dc2626';
+        })
+        .finally(() => {
+            btn.disabled = true; // permanently disable until cooldown
+            btn.textContent = '✨ Enriquecer con IA';
+        });
 }
 
 // ── Add participante ─────────────────────────────────────────────────────────

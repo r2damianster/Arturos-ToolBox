@@ -33,6 +33,10 @@ def convocatoria_estudiante():
 @convocatorias_bp.route('/util/convocatoria_docente', methods=['POST'])
 def convocatoria_docente():
     try:
+        import json
+        modo = request.form.get('modo_docentes', 'carrera')
+        docentes_json = request.form.get('docentes_json', '')
+
         datos = {
             'num_convocatoria':         request.form.get('num_convocatoria'),
             'periodo':                  request.form.get('periodo'),
@@ -49,8 +53,14 @@ def convocatoria_docente():
             'convocante_cargo':         request.form.get('convocante_cargo'),
             'iniciales_elaborador':     request.form.get('iniciales_elaborador')
         }
+
+        # Si es modo manual, pasar los docentes
+        docentes_manuales = None
+        if modo == 'manual' and docentes_json:
+            docentes_manuales = json.loads(docentes_json)
+
         logic = ConvocatoriaLogic()
-        buffer = logic.generar_docx("docente", datos)
+        buffer = logic.generar_docx("docente", datos, docentes_manuales=docentes_manuales)
         return send_file(buffer, as_attachment=True, download_name="Convocatoria_Docentes.docx")
     except Exception as e:
         return f"Error: {str(e)}", 500

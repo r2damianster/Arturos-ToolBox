@@ -2,6 +2,10 @@ from flask import Flask, render_template
 from dotenv import load_dotenv
 import os
 import logging
+from logic.db import init_db
+
+# Inicializar base de datos de docentes
+init_db()
 
 # Configurar logs para ver qué pasa en Render
 logging.basicConfig(level=logging.INFO)
@@ -10,6 +14,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 def configurar_rutas(app):
     # Lista de blueprints a registrar
@@ -19,7 +24,9 @@ def configurar_rutas(app):
         ('routes.convocatorias_routes', 'convocatorias_bp'),
         ('routes.reportes_routes', 'reportes_bp'),
         ('routes.maestrias_routes', 'maestrias_bp'),
-        ('routes.transcripcion_routes', 'transcripcion_bp')
+        ('routes.transcripcion_routes', 'transcripcion_bp'),
+        ('routes.docentes_routes', 'docentes_bp'),
+        ('routes.ia_routes', 'ia_bp')
     ]
 
     for module_path, bp_name in blueprints:

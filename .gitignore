@@ -29,6 +29,9 @@ dist-ssr
 .claude/
 CLAUDE.md
 
+# Database (SQLite)
+data/*.db
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

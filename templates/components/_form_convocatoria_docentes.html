@@ -1,7 +1,7 @@
 <div class="container" style="max-width:800px;">
     <h1>👨‍🏫 Convocatoria a Docentes</h1>
 
-    <form action="{{ url_for('convocatorias.convocatoria_docente') }}" method="POST">
+    <form action="{{ url_for('convocatorias.convocatoria_docente') }}" method="POST" id="form_conv_docentes">
         <fieldset>
             <legend>Identificación</legend>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -31,6 +31,18 @@
 
         <fieldset>
             <legend>Datos de la Reunión</legend>
+
+            <!-- Enriquecer asunto y descripción con IA -->
+            <div style="margin-bottom:12px;padding:10px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button type="button" onclick="enriquecerConvocatoriaIA()"
+                        style="padding:6px 16px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.85em;">
+                        ✨ Enriquecer con IA
+                    </button>
+                    <span id="ia-conv-status" style="font-size:0.8rem;color:#64748b;"></span>
+                </div>
+            </div>
+
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div style="grid-column:1/-1;">
                     <label>Asunto:</label>
@@ -55,20 +67,76 @@
             </div>
         </fieldset>
 
+        <!-- ═══ MODO DE DOCENTES ═══ -->
         <fieldset>
-            <legend>Firma</legend>
+            <legend>Docentes Participantes</legend>
+            <div style="margin-bottom:16px;">
+                <label style="font-weight:600;display:flex;gap:20px;flex-wrap:wrap;">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                        <input type="radio" name="modo_docentes" value="carrera" checked onchange="toggleModoDocentes()">
+                        📋 Docentes de la carrera
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                        <input type="radio" name="modo_docentes" value="manual" onchange="toggleModoDocentes()">
+                        ✏️ Ingresar manualmente
+                    </label>
+                </label>
+            </div>
+
+            <!-- MODO CARRERA: seleccionar carrera -->
+            <div id="modo_carrera">
+                <label>Carrera:</label>
+                <select name="carrera_id" id="select_carrera" onchange="cargarDocentesCarrera()">
+                    <option value="" disabled selected>-- Seleccione carrera --</option>
+                </select>
+                <p style="font-size:0.85rem;color:#64748b;margin-top:8px;" id="count_docentes"></p>
+            </div>
+
+            <!-- MODO MANUAL: agregar docentes uno a uno -->
+            <div id="modo_manual" style="display:none;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+                    <input type="text" id="manual_titulo" placeholder="Título (Lic., Dr.)" value="Lic." style="padding:8px;border:1px solid #ddd;border-radius:6px;">
+                    <input type="text" id="manual_nombre" placeholder="Nombre completo" style="padding:8px;border:1px solid #ddd;border-radius:6px;">
+                    <input type="text" id="manual_postgrado" placeholder="Post-grado (Mg., PhD.)" value="Mg." style="padding:8px;border:1px solid #ddd;border-radius:6px;">
+                </div>
+                <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:12px;">
+                    <input type="text" id="manual_cargo" placeholder="Cargo" value="Docente" style="padding:8px;border:1px solid #ddd;border-radius:6px;">
+                    <button type="button" onclick="agregarDocenteManual()" style="padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer;">➕ Agregar</button>
+                </div>
+                <table id="tabla_manuales" style="width:100%;border-collapse:collapse;display:none;">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th style="padding:6px 8px;text-align:left;font-size:0.85rem;">#</th>
+                            <th style="padding:6px 8px;text-align:left;font-size:0.85rem;">Nombre</th>
+                            <th style="padding:6px 8px;text-align:left;font-size:0.85rem;">Cargo</th>
+                            <th style="padding:6px 8px;text-align:center;font-size:0.85rem;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody_manuales"></tbody>
+                </table>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Firma del Convocante</legend>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div style="grid-column:1/-1;" id="convocante_select_wrap">
+                    <label>Seleccione el convocante:</label>
+                    <select id="select_docente" onchange="llenarCamposDocente()" required>
+                        <option value="" disabled selected>-- Seleccione un docente --</option>
+                    </select>
+                </div>
                 <div>
                     <label>Título:</label>
-                    <input type="text" name="convocante_titulo" placeholder="Ej: Mg." required>
+                    <input type="text" name="convocante_titulo" id="convocante_titulo" placeholder="Ej: Mg." required readonly>
                 </div>
                 <div>
                     <label>Nombre completo:</label>
-                    <input type="text" name="convocante_nombre" required>
+                    <input type="text" name="convocante_nombre" id="convocante_nombre" required readonly>
                 </div>
                 <div>
                     <label>Cargo:</label>
-                    <input type="text" name="convocante_cargo" required>
+                    <input type="text" name="convocante_cargo" id="convocante_cargo" required readonly>
                 </div>
                 <div>
                     <label>Iniciales elaborador:</label>
@@ -79,4 +147,185 @@
 
         <button type="submit" class="submit-btn">📄 Generar Convocatoria Docentes</button>
     </form>
+
+    <script>
+    let docentesCarrera = [];
+    let docentesManuales = [];
+
+    // Cargar carreras y docentes al iniciar
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/docentes/api/lista')
+            .then(r => r.json())
+            .then(docentes => {
+                // Extraer carreras únicas
+                const carreras = [...new Set(docentes.map(d => d.carrera))];
+                const sel = document.getElementById('select_carrera');
+                carreras.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.textContent = c;
+                    sel.appendChild(opt);
+                });
+                docentesCarrera = docentes;
+            });
+    });
+
+    function toggleModoDocentes() {
+        const modo = document.querySelector('input[name="modo_docentes"]:checked').value;
+        document.getElementById('modo_carrera').style.display = modo === 'carrera' ? 'block' : 'none';
+        document.getElementById('modo_manual').style.display = modo === 'manual' ? 'block' : 'none';
+    }
+
+    function cargarDocentesCarrera() {
+        const carrera = document.getElementById('select_carrera').value;
+        fetch('/docentes/api/lista')
+            .then(r => r.json())
+            .then(docentes => {
+                const filtrados = docentes.filter(d => d.carrera === carrera);
+                docentesCarrera = filtrados;
+                const sel = document.getElementById('select_docente');
+                sel.innerHTML = '<option value="" disabled selected>-- Seleccione un docente --</option>';
+                filtrados.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.id;
+                    opt.dataset.titulo = d.titulo_grado;
+                    opt.dataset.nombre = d.nombre;
+                    opt.dataset.postgrado = d.post_grado;
+                    opt.dataset.cargo = d.cargo;
+                    opt.textContent = `${d.titulo_grado} ${d.nombre}, ${d.post_grado} — ${d.cargo}`;
+                    sel.appendChild(opt);
+                });
+                document.getElementById('count_docentes').textContent = `${filtrados.length} docentes en esta carrera`;
+            });
+    }
+
+    function llenarCamposDocente() {
+        const sel = document.getElementById('select_docente');
+        const opt = sel.options[sel.selectedIndex];
+        document.getElementById('convocante_titulo').value = opt.dataset.titulo || '';
+        document.getElementById('convocante_nombre').value = opt.dataset.nombre || '';
+        document.getElementById('convocante_cargo').value = opt.dataset.cargo || '';
+    }
+
+    // ── Docentes manuales ──
+    function agregarDocenteManual() {
+        const titulo = document.getElementById('manual_titulo').value.trim();
+        const nombre = document.getElementById('manual_nombre').value.trim();
+        const postgrado = document.getElementById('manual_postgrado').value.trim();
+        const cargo = document.getElementById('manual_cargo').value.trim();
+        if (!nombre) return alert('El nombre es obligatorio');
+
+        docentesManuales.push({ titulo, nombre, postgrado, cargo });
+        document.getElementById('manual_nombre').value = '';
+        document.getElementById('manual_nombre').focus();
+        renderManuales();
+    }
+
+    function renderManuales() {
+        const tbody = document.getElementById('tbody_manuales');
+        const tabla = document.getElementById('tabla_manuales');
+        tbody.innerHTML = '';
+        docentesManuales.forEach((d, i) => {
+            tbody.innerHTML += `<tr style="border-bottom:1px solid #eee;">
+                <td style="padding:4px 8px;">${i+1}</td>
+                <td style="padding:4px 8px;">${d.titulo} ${d.nombre}, ${d.postgrado}</td>
+                <td style="padding:4px 8px;">${d.cargo}</td>
+                <td style="padding:4px 8px;text-align:center;">
+                    <button onclick="eliminarManual(${i})" style="background:#ef4444;color:#fff;border:none;padding:2px 8px;border-radius:4px;cursor:pointer;">✕</button>
+                </td>
+            </tr>`;
+        });
+        tabla.style.display = docentesManuales.length ? 'table' : 'none';
+
+        // Also update the convocante dropdown with manual docentes
+        const sel = document.getElementById('select_docente');
+        sel.innerHTML = '<option value="" disabled selected>-- Seleccione un docente --</option>';
+        docentesManuales.forEach((d, i) => {
+            const opt = document.createElement('option');
+            opt.value = 'manual_' + i;
+            opt.dataset.titulo = d.titulo;
+            opt.dataset.nombre = d.nombre;
+            opt.dataset.postgrado = d.postgrado;
+            opt.dataset.cargo = d.cargo;
+            opt.textContent = `${d.titulo} ${d.nombre}, ${d.postgrado} — ${d.cargo}`;
+            sel.appendChild(opt);
+        });
+    }
+
+    function eliminarManual(idx) {
+        docentesManuales.splice(idx, 1);
+        renderManuales();
+    }
+
+    // Before submit: embed manual docentes as JSON
+    document.getElementById('form_conv_docentes').addEventListener('submit', function(e) {
+        const modo = document.querySelector('input[name="modo_docentes"]:checked').value;
+        if (modo === 'manual') {
+            if (docentesManuales.length === 0) {
+                e.preventDefault();
+                return alert('Agregue al menos un docente');
+            }
+            // Add hidden field with manual docentes as JSON
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'docentes_json';
+            input.value = JSON.stringify(docentesManuales);
+            this.appendChild(input);
+        }
+    });
+
+    // ── Enriquecer con IA (Convocatoria Docentes) ──
+    function enriquecerConvocatoriaIA() {
+        const asunto = document.querySelector('input[name="asunto"]').value;
+        const desc = document.querySelector('textarea[name="descripcion_convocatoria"]').value;
+        const statusEl = document.getElementById('ia-conv-status');
+
+        if (!asunto && !desc) {
+            statusEl.textContent = '⚠️ Escribe algo primero.';
+            statusEl.style.color = '#dc2626';
+            return;
+        }
+
+        statusEl.textContent = '⏳ Procesando...';
+        statusEl.style.color = '#64748b';
+
+        const calls = [];
+        if (asunto && asunto.trim().length >= 3) {
+            calls.push(fetch('/util/ia_enriquecer', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ contexto: 'convocatoria_asunto', texto: asunto })
+            }).then(async r => {
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.cooldown_formatted ? `Espera ${d.cooldown_formatted}` : d.error);
+                return { field: 'asunto', texto: d.texto_enriquecido };
+            }));
+        }
+        if (desc && desc.trim().length >= 3) {
+            calls.push(fetch('/util/ia_enriquecer', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ contexto: 'convocatoria_descripcion', texto: desc })
+            }).then(async r => {
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.cooldown_formatted ? `Espera ${d.cooldown_formatted}` : d.error);
+                return { field: 'descripcion_convocatoria', texto: d.texto_enriquecido };
+            }));
+        }
+
+        Promise.all(calls)
+            .then(results => {
+                results.forEach(r => {
+                    if (r.field === 'asunto')
+                        document.querySelector('input[name="asunto"]').value = r.texto;
+                    else
+                        document.querySelector('textarea[name="descripcion_convocatoria"]').value = r.texto;
+                });
+                statusEl.textContent = '✅ Enriquecido. Podés editar.';
+                statusEl.style.color = '#16a34a';
+            })
+            .catch(err => {
+                statusEl.textContent = `❌ ${err.message}`;
+                statusEl.style.color = '#dc2626';
+            });
+    }
+    </script>
 </div>

@@ -1,0 +1,181 @@
+<div class="container" style="max-width:900px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h1 style="margin:0;">⚙️ Administración</h1>
+        <div style="display:flex;gap:12px;align-items:center;">
+            <span style="font-size:0.85rem;color:#64748b;">{{ admin_email }}</span>
+            <a href="/docentes/logout" style="text-decoration:none;background:#ef4444;color:#fff;padding:8px 16px;border-radius:8px;font-size:0.85rem;">🚪 Cerrar Sesión</a>
+        </div>
+    </div>
+
+    <!-- ═══ IA Config ═══ -->
+    <fieldset style="margin-bottom:20px;">
+        <legend>🤖 Configuración IA</legend>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;">
+            <div>
+                <label>Intervalo entre usos de IA (minutos):</label>
+                <input type="number" id="ia_cooldown" min="1" max="120" value="10"
+                    style="padding:8px;border:1px solid #ddd;border-radius:6px;width:100%;">
+                <span class="help-text" style="font-size:0.8rem;color:#64748b;">
+                    Tiempo mínimo entre cada enriquecimiento con IA.
+                </span>
+            </div>
+            <div>
+                <button onclick="guardarCooldown()" style="padding:8px 16px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;">
+                    💾 Guardar
+                </button>
+                <span id="ia-config-status" style="margin-left:8px;font-size:0.8rem;color:#64748b;"></span>
+            </div>
+        </div>
+    </fieldset>
+
+    <!-- ═══ Docentes ═══ -->
+    <fieldset>
+        <legend>Agregar Docente</legend>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+            <div>
+                <label>Título:</label>
+                <input type="text" id="new_titulo" placeholder="Ej: Lic., Dr., Mg." value="Lic.">
+            </div>
+            <div style="grid-column:span 2;">
+                <label>Nombre completo:</label>
+                <input type="text" id="new_nombre" placeholder="Nombre y apellido" required>
+            </div>
+            <div>
+                <label>Post-grado:</label>
+                <input type="text" id="new_postgrado" placeholder="Ej: Mg., PhD.">
+            </div>
+            <div>
+                <label>Cargo:</label>
+                <input type="text" id="new_cargo" placeholder="Ej: Docente" value="Docente">
+            </div>
+            <div>
+                <label>Carrera:</label>
+                <input type="text" id="new_carrera" value="Pedagogía de los Idiomas Nacionales y Extranjeros">
+            </div>
+            <div style="display:flex;align-items:flex-end;">
+                <label style="display:flex;gap:6px;align-items:center;">
+                    <input type="checkbox" id="new_director"> Es Director
+                </label>
+                <button onclick="addDocente()" class="submit-btn" style="margin-left:auto;">➕ Agregar</button>
+            </div>
+        </div>
+    </fieldset>
+
+    <!-- Tabla de docentes -->
+    <table id="docentesTable" style="width:100%;border-collapse:collapse;margin-top:20px;">
+        <thead>
+            <tr style="background:#333;color:#fff;">
+                <th style="padding:8px;">Título</th>
+                <th style="padding:8px;">Nombre</th>
+                <th style="padding:8px;">Post-grado</th>
+                <th style="padding:8px;">Cargo</th>
+                <th style="padding:8px;">Carrera</th>
+                <th style="padding:8px;">Director</th>
+                <th style="padding:8px;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="docentesBody"></tbody>
+    </table>
+</div>
+
+<script>
+// Cargar docentes al iniciar
+document.addEventListener('DOMContentLoaded', cargarDocentes);
+
+function cargarDocentes() {
+    fetch('/docentes/api/lista')
+        .then(r => r.json())
+        .then(docentes => {
+            const tbody = document.getElementById('docentesBody');
+            tbody.innerHTML = '';
+            docentes.forEach(d => {
+                tbody.innerHTML += `
+                    <tr style="border-bottom:1px solid #eee;" id="row-${d.id}">
+                        <td style="padding:8px;">${d.titulo_grado}</td>
+                        <td style="padding:8px;">${d.nombre}</td>
+                        <td style="padding:8px;">${d.post_grado}</td>
+                        <td style="padding:8px;">${d.cargo}</td>
+                        <td style="padding:8px;font-size:0.85em;">${d.carrera}</td>
+                        <td style="padding:8px;">${d.es_director ? '✅ Sí' : '—'}</td>
+                        <td style="padding:8px;">
+                            <button onclick="editDocente(${d.id})" style="cursor:pointer;background:#4CAF50;color:#fff;border:none;padding:4px 8px;border-radius:4px;">✏️</button>
+                            <button onclick="deleteDocente(${d.id})" style="cursor:pointer;background:#f44336;color:#fff;border:none;padding:4px 8px;border-radius:4px;">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+}
+
+function addDocente() {
+    const data = {
+        titulo_grado: document.getElementById('new_titulo').value,
+        nombre: document.getElementById('new_nombre').value,
+        post_grado: document.getElementById('new_postgrado').value,
+        cargo: document.getElementById('new_cargo').value,
+        carrera: document.getElementById('new_carrera').value,
+        es_director: document.getElementById('new_director').checked
+    };
+    if (!data.nombre) return alert('El nombre es obligatorio');
+
+    fetch('/docentes/api', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(res => {
+        alert(res.message);
+        document.getElementById('new_nombre').value = '';
+        cargarDocentes();
+    })
+    .catch(err => alert('Error: ' + err));
+}
+
+function editDocente(id) {
+    const row = document.getElementById('row-' + id);
+    const cells = row.querySelectorAll('td');
+    const titulo = prompt('Título:', cells[0].textContent);
+    if (titulo === null) return;
+    const nombre = prompt('Nombre:', cells[1].textContent);
+    if (!nombre) return alert('El nombre es obligatorio');
+    const postgrado = prompt('Post-grado:', cells[2].textContent);
+    const cargo = prompt('Cargo:', cells[3].textContent);
+    const carrera = prompt('Carrera:', cells[4].textContent);
+    const esDirector = confirm('¿Es Director de carrera?');
+
+    fetch('/docentes/api/' + id, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ titulo_grado: titulo, nombre, post_grado: postgrado, cargo, carrera, es_director: esDirector })
+    })
+    .then(r => r.json())
+    .then(res => { alert(res.message); cargarDocentes(); });
+}
+
+function deleteDocente(id) {
+    if (!confirm('¿Eliminar este docente?')) return;
+    fetch('/docentes/api/' + id, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(res => { alert(res.message); cargarDocentes(); });
+}
+
+// ── IA Cooldown Config ──
+function guardarCooldown() {
+    const mins = parseInt(document.getElementById('ia_cooldown').value);
+    if (mins < 1 || mins > 120) return alert('El intervalo debe ser entre 1 y 120 minutos');
+
+    fetch('/util/ia_config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ cooldown_minutes: mins })
+    })
+    .then(r => r.json())
+    .then(res => {
+        document.getElementById('ia-config-status').textContent = '✅ ' + res.message;
+    })
+    .catch(err => {
+        document.getElementById('ia-config-status').textContent = '❌ Error';
+    });
+}
+</script>
