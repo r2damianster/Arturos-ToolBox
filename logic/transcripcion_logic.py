@@ -128,7 +128,7 @@ def finalizar_transcripcion(transcript_id: str) -> dict:
         try:
             prompt = f"""Eres un secretario académico experto en redactar actas y resúmenes de reuniones.
 Analiza la siguiente transcripción y genera un resumen estructurado en el idioma del audio (código: {idioma_label}).
-No se detectaron hablantes individuales. Usa 'Habla X' o 'Participante X' si se pueden diferenciar.
+NOTA: La transcripción NO identifica hablantes individuales. Narra los eventos en tercera persona sin mencionar quién dijo qué específicamente (ej: "Se mencionó que...", "Se acordó...", "Se propuso...").
 El resumen debe tener aproximadamente {target_words} palabras (mínimo 250).
 
 Usa EXACTAMENTE esta estructura:
@@ -137,7 +137,7 @@ PUNTOS TRATADOS
 (Lista numerada de los temas principales discutidos)
 
 DESARROLLO DE LA REUNIÓN
-(Narrativo en tercera persona. Menciona quién dijo qué si es posible identificar participantes.)
+(Narrativo en tercera persona impersonal. Ejemplo: "Se revisaron los sílabos", "Se discutió el cronograma", "Se propuso implementar...". NO uses "Habla X" ni inventes nombres de participantes.)
 
 ACUERDOS Y COMPROMISOS
 (Lista de decisiones tomadas. Si no hay, escribe: "No se registraron acuerdos formales.")
