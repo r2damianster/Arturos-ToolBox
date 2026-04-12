@@ -1,38 +1,17 @@
 import os
-import tempfile
+import io
 import json as _json
-import assemblyai as aai
 from groq import Groq
 
-# Configuración de APIs
-aai.settings.api_key = os.environ.get('ASSEMBLYAI_API_KEY', '')
+# Configuración de Groq
 _groq_client = Groq(api_key=os.environ.get('GROQ_API_KEY', '')) if os.environ.get('GROQ_API_KEY') else None
-_GROQ_MODEL = "llama-3.3-70b-versatile"
-
-
-def _ts(ms):
-    """Convierte milisegundos a [MM:SS]."""
-    s = ms // 1000
-    return f"[{s // 60:02d}:{s % 60:02d}]"
-
-
-def _nombre_hablante(speaker_letter, speaker_names):
-    """Devuelve nombre real si fue mapeado, si no 'Hablante X'."""
-    key = speaker_letter.upper()
-    if speaker_names and key in speaker_names and speaker_names[key].strip():
-        return speaker_names[key].strip()
-    return f"Hablante {key}"
-
-
-def _config_base():
-    """Sin configuración: usa los defaults de AssemblyAI (free tier)."""
-    # No pasar ninguna config — AssemblyAI exige speech_models si se activa
-    # cualquier feature. Sin config, transcribe con defaults del free tier.
-    return None
+_GROQ_MODEL_LLM = "llama-3.3-70b-versatile"
+_GROQ_MODEL_WHISPER = "whisper-large-v3"
 
 
 def _guardar_audio_tmp(audio_file):
     """Guarda FileStorage en un archivo temporal. Retorna la ruta."""
+    import tempfile
     suffix = os.path.splitext(audio_file.filename)[1] or '.mp3'
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     audio_file.save(tmp.name)
@@ -44,21 +23,46 @@ def _guardar_audio_tmp(audio_file):
 
 def submit_transcripcion(audio_file, speaker_names: dict, titulo: str) -> str:
     """
-    Envía el audio a AssemblyAI sin bloquear.
-    Guarda speaker_names y titulo en /tmp para recuperarlos luego.
-    Retorna transcript_id.
+    Transcribe audio con Groq Whisper (síncrono, retorna transcript directo).
+    Retorna un ID fake para compatibilidad con el flujo actual.
     """
+    import tempfile
+    import uuid
+
+    if not _groq_client:
+        raise Exception("Groq API key no configurada.")
+
     tmp_path = _guardar_audio_tmp(audio_file)
     try:
-        transcriber = aai.Transcriber()
-        config = _config_base()
-        transcript = transcriber.submit(tmp_path, config=config) if config else transcriber.submit(tmp_path)
+        filename = os.path.basename(tmp_path)
+        with open(tmp_path, "rb") as f:
+            audio_bytes = f.read()
 
-        ctx_path = os.path.join(tempfile.gettempdir(), f"txn_{transcript.id}.json")
+        transcript = _groq_client.audio.transcriptions.create(
+            file=(filename, audio_bytes),
+            model=_GROQ_MODEL_WHISPER,
+            response_format="verbose_json",
+            timestamp_granularities=["segment"],
+        )
+
+        transcript_id = str(uuid.uuid4())
+        text = transcript.text or ""
+        segments = transcript.segments or []
+
+        # Guardar datos para luego
+        ctx_path = os.path.join(tempfile.gettempdir(), f"txn_{transcript_id}.json")
+        data = {
+            "text": text,
+            "segments": [{"start": s.get("start", 0), "text": s.get("text", "")} for s in segments],
+            "language": transcript.language or "es",
+            "duration": transcript.duration or 0,
+            "speaker_names": speaker_names,
+            "titulo": titulo,
+        }
         with open(ctx_path, 'w', encoding='utf-8') as f:
-            _json.dump({"speaker_names": speaker_names, "titulo": titulo}, f)
+            _json.dump(data, f)
 
-        return transcript.id
+        return transcript_id
     finally:
         try:
             os.unlink(tmp_path)
@@ -68,68 +72,63 @@ def submit_transcripcion(audio_file, speaker_names: dict, titulo: str) -> str:
 
 def get_transcript_status(transcript_id: str) -> dict:
     """
-    Consulta el estado en AssemblyAI.
-    Retorna {"status": "queued|processing|completed|error", "error": "..."}
+    Groq es síncrono: siempre retorna 'completed' o 'error'.
     """
-    t = aai.Transcript.get_by_id(transcript_id)
-    status = t.status.value if hasattr(t.status, 'value') else str(t.status)
-    return {"status": status, "error": t.error or ""}
+    import tempfile
+    ctx_path = os.path.join(tempfile.gettempdir(), f"txn_{transcript_id}.json")
+    if os.path.exists(ctx_path):
+        return {"status": "completed", "error": ""}
+    return {"status": "error", "error": "Transcript no encontrado."}
 
 
 def finalizar_transcripcion(transcript_id: str) -> dict:
     """
-    Asume que el transcript está completado.
-    Formatea el transcript y genera resumen con Groq (gratis).
+    Genera resumen con Groq LLM a partir de la transcripción de Groq Whisper.
     """
+    import tempfile
     ctx_path = os.path.join(tempfile.gettempdir(), f"txn_{transcript_id}.json")
-    speaker_names, titulo = {}, ''
-    if os.path.exists(ctx_path):
-        with open(ctx_path, encoding='utf-8') as f:
-            ctx = _json.load(f)
-        speaker_names = ctx.get("speaker_names", {})
-        titulo = ctx.get("titulo", "")
-        try:
-            os.unlink(ctx_path)
-        except OSError:
-            pass
 
-    transcript = aai.Transcript.get_by_id(transcript_id)
+    if not os.path.exists(ctx_path):
+        raise Exception("Datos de transcripción no encontrados.")
 
-    if transcript.status == aai.TranscriptStatus.error:
-        raise Exception(f"AssemblyAI error: {transcript.error}")
+    with open(ctx_path, encoding='utf-8') as f:
+        data = _json.load(f)
 
-    # ── Formatear transcript con timestamps y hablantes ──────────────────────
+    try:
+        os.unlink(ctx_path)
+    except OSError:
+        pass
+
+    text = data.get("text", "")
+    segments = data.get("segments", [])
+    idioma_label = data.get("language", "es")
+    duracion = data.get("duration", 0)
+    speaker_names = data.get("speaker_names", {})
+    titulo = data.get("titulo", "")
+
+    if not text:
+        raise Exception("Transcripción vacía.")
+
+    word_count = len(text.split())
+
+    # ── Formatear transcript con timestamps ──────────────────────────────────
     lineas = []
-    utterances = transcript.utterances or []
-    if utterances and hasattr(utterances[0], 'speaker') and utterances[0].speaker:
-        # Con speaker_labels (requiere plan de pago)
-        for utt in utterances:
-            nombre = _nombre_hablante(utt.speaker, speaker_names)
-            lineas.append(f"{_ts(utt.start)} {nombre}:\n{utt.text}")
-    else:
-        # Sin speaker_labels (plan gratuito): texto simple con timestamps si están disponibles
-        for utt in utterances:
-            start_ms = getattr(utt, 'start', 0)
-            lineas.append(f"{_ts(start_ms)} {utt.text}")
-        # Si no hay utterances, usar texto completo
-        if not lineas and transcript.text:
-            lineas.append(transcript.text)
-    transcript_formateado = "\n\n".join(lineas)
+    for seg in segments:
+        start_ms = seg.get("start", 0)
+        s = int(start_ms)
+        mins, secs = divmod(s, 60)
+        lineas.append(f"[{mins:02d}:{secs:02d}] {seg['text']}")
+    transcript_formateado = "\n".join(lineas) if lineas else text
 
-    idioma_label = transcript.language_code or "es"
-    word_count = len(transcript.text.split()) if transcript.text else 0
-
-    # ── Resumen con Groq ─────────────────────────────────────────────────────
-    mapeo_str = ""
+    # ── Resumen con Groq LLM ─────────────────────────────────────────────────
     target_words = max(250, int(word_count * 0.15))
 
     resumen = ""
-    if _groq_client and transcript.text:
+    if _groq_client and text:
         try:
-            hablantes_info = f"Mapeo de hablantes: {mapeo_str}" if mapeo_str else "No se detectaron hablantes (plan gratuito). Usa 'Habla X' o 'Participante X' si se pueden diferenciar."
             prompt = f"""Eres un secretario académico experto en redactar actas y resúmenes de reuniones.
 Analiza la siguiente transcripción y genera un resumen estructurado en el idioma del audio (código: {idioma_label}).
-{hablantes_info}
+No se detectaron hablantes individuales. Usa 'Habla X' o 'Participante X' si se pueden diferenciar.
 El resumen debe tener aproximadamente {target_words} palabras (mínimo 250).
 
 Usa EXACTAMENTE esta estructura:
@@ -146,10 +145,10 @@ ACUERDOS Y COMPROMISOS
 No agregues texto fuera de estas tres secciones.
 
 TRANSCRIPCIÓN:
-{transcript.text[:8000]}"""
+{text[:8000]}"""
 
             resp = _groq_client.chat.completions.create(
-                model=_GROQ_MODEL,
+                model=_GROQ_MODEL_LLM,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 max_tokens=1500,
@@ -162,7 +161,7 @@ TRANSCRIPCIÓN:
         "resumen_estructurado": resumen,
         "transcript_formateado": transcript_formateado,
         "idioma": idioma_label,
-        "duracion_seg": transcript.audio_duration or 0,
+        "duracion_seg": duracion,
         "word_count": word_count,
         "titulo": titulo,
     }
@@ -172,15 +171,38 @@ TRANSCRIPCIÓN:
 
 def submit_audio_acta(audio_file) -> str:
     """
-    Envía el audio de acta a AssemblyAI sin bloquear.
-    Retorna transcript_id.
+    Transcribe audio de acta con Groq Whisper (síncrono).
     """
+    import tempfile
+    import uuid
+
+    if not _groq_client:
+        raise Exception("Groq API key no configurada.")
+
     tmp_path = _guardar_audio_tmp(audio_file)
     try:
-        transcriber = aai.Transcriber()
-        config = _config_base()
-        transcript = transcriber.submit(tmp_path, config=config) if config else transcriber.submit(tmp_path)
-        return transcript.id
+        # Groq necesita filename + contenido como tuple
+        filename = os.path.basename(tmp_path)
+        with open(tmp_path, "rb") as f:
+            audio_bytes = f.read()
+
+        transcript = _groq_client.audio.transcriptions.create(
+            file=(filename, audio_bytes),
+            model=_GROQ_MODEL_WHISPER,
+            response_format="verbose_json",
+        )
+
+        transcript_id = str(uuid.uuid4())
+        text = transcript.text or ""
+        idioma = transcript.language or "es"
+
+        ctx_path = os.path.join(tempfile.gettempdir(), f"txn_{transcript_id}.json")
+        with open(ctx_path, 'w', encoding='utf-8') as f:
+            _json.dump({"text": text, "language": idioma}, f)
+
+        return transcript_id
+    except Exception as e:
+        raise Exception(f"Error al transcribir con Groq: {str(e)}")
     finally:
         try:
             os.unlink(tmp_path)
@@ -190,16 +212,19 @@ def submit_audio_acta(audio_file) -> str:
 
 def finalizar_acta(transcript_id: str) -> dict:
     """
-    Asume que el transcript está completado.
-    Usa Groq para extraer las notas del Acta Técnica.
+    Usa Groq LLM para extraer las notas del Acta Técnica.
     """
-    transcript = aai.Transcript.get_by_id(transcript_id)
+    import tempfile
+    ctx_path = os.path.join(tempfile.gettempdir(), f"txn_{transcript_id}.json")
 
-    if transcript.status == aai.TranscriptStatus.error:
-        raise Exception(f"AssemblyAI error: {transcript.error}")
+    if not os.path.exists(ctx_path):
+        raise Exception("Datos de transcripción no encontrados.")
 
-    idioma_label = transcript.language_code or "es"
-    texto = transcript.text or ""
+    with open(ctx_path, encoding='utf-8') as f:
+        data = _json.load(f)
+
+    texto = data.get("text", "")
+    idioma_label = data.get("language", "es")
 
     if not _groq_client or not texto:
         return {
@@ -225,7 +250,7 @@ TRANSCRIPCIÓN:
 {texto[:8000]}"""
 
         resp = _groq_client.chat.completions.create(
-            model=_GROQ_MODEL,
+            model=_GROQ_MODEL_LLM,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
             max_tokens=600,
@@ -258,8 +283,8 @@ def construir_txt(titulo: str, resultado: dict) -> str:
     sep = "═" * 60
 
     partes = [
-        f"TRANSCRIPCIÓN DE REUNIÓN",
-        f"{'=' * 60}",
+        "TRANSCRIPCIÓN DE REUNIÓN",
+        "=" * 60,
         f"Título    : {titulo or 'Sin título'}",
         f"Idioma    : {resultado['idioma'].upper()}",
         f"Duración  : {mins}m {segs}s",
