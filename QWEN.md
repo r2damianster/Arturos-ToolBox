@@ -1,14 +1,15 @@
 # 🧰 Arturo's ToolBox — Contexto del Proyecto
 
-> **Última actualización**: 2026-04-12
+> **Última actualización**: 2026-04-13
 
 ## Stack
 - **Backend**: Flask (Python 3.12)
 - **BD**: SQLite (`data/docentes.db`) — auto-generada al iniciar
-- **IA**: Groq (Llama 3.3 70B) — enriquecimiento de texto
-- **Audio**: AssemblyAI — transcripción
+- **IA**: Groq (Llama 3.3 70B) — enriquecimiento de texto + resumen de transcripciones
+- **Audio**: Groq Whisper (`whisper-large-v3`) — transcripción de audio (gratuito)
 - **Docs**: python-docx + docxtpl — generación .docx
 - **Server prod**: Gunicorn (Render.com)
+- **AssemblyAI**: ya NO se usa (migrado a Groq Whisper)
 
 ## Arquitectura
 ```
@@ -50,13 +51,18 @@ templates/ → HTML forms (sidebar navega a secciones)
 1. **Carrera**: Selecciona carrera → carga todos los docentes de esa carrera desde BD
 2. **Manual**: Agrega docentes uno a uno con título, nombre, post-grado, cargo
 
+## IA Transcripción
+- **Motor**: Groq Whisper (`whisper-large-v3`) — sincrónico
+- **Resumen**: Groq LLM (Llama 3.3 70B) en 3 secciones: Puntos Tratados, Desarrollo, Acuerdos
+- **Salida**: Archivo .txt con resumen estructurado + transcript formateado con timestamps
+
 ## Variables de Entorno
 ```env
-GROQ_API_KEY=gsk_...           # IA enrichment
-ASSEMBLYAI_API_KEY=...         # Transcripción audio
+GROQ_API_KEY=gsk_...           # IA enrichment + transcripción audio
 SECRET_KEY=...                 # Sessions Flask
 IA_COOLDOWN_SECONDS=600        # Opcional: cooldown inicial
 PORT=10000                     # Puerto del servidor
+# ASSEMBLYAI_API_KEY ya no se requiere
 ```
 
 ## Convenciones
@@ -67,7 +73,14 @@ PORT=10000                     # Puerto del servidor
 
 ## Archivos clave a revisar antes de trabajar
 - `logic/convocatorias.py` — Generación de convocatorias con filas dinámicas
-- `logic/ia_enriquecer.py` — Servicio IA con rate limiting
+- `logic/ia_enriquecer.py` — Servicio IA (Groq/Llama) con rate limiting
+- `logic/transcripcion_logic.py` — Transcripción Groq Whisper + resumen LLM
 - `logic/db.py` — CRUD SQLite docentes
 - `routes/ia_routes.py` — Endpoints IA
 - `routes/docentes_routes.py` — Auth + admin + API docentes
+
+## Uso con múltiples asistentes IA
+Este proyecto mantiene archivos de contexto para distintos asistentes:
+- **CLAUDE.md** — Instrucciones para Claude Code
+- **QWEN.md** — Contexto para Qwen Code / otras IAs (este archivo)
+- Ambos archivos deben mantenerse sincronizados con el estado real del proyecto

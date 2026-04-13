@@ -8,9 +8,18 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
-### Cambios pendientes de commit
-- Documentación actualizada en README.md
-- Contexto del proyecto en QWEN.md
+_Sin cambios pendientes._
+
+---
+
+## [2026-04-13] — Documentación actualizada
+
+### 📝 Docs
+- **CLAUDE.md**: Ampliado con contexto completo del proyecto (arquitectura, blueprints, BD, IA, convenciones)
+- **QWEN.md**: Corregido Stack (AssemblyAI → Groq Whisper), añadida sección IA Transcripción, actualizada fecha
+- **README.md**: Corregida sección Transcripción (AssemblyAI → Groq Whisper), variables de entorno actualizadas
+- **CHANGELOG.md**: Limpieza de sección Unreleased
+- Ambos archivos de contexto (CLAUDE.md / QWEN.md) sincronizados para uso con múltiples asistentes IA
 
 ---
 

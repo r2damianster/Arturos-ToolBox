@@ -29,8 +29,7 @@ Aplicación web Flask para la gestión de documentos académicos de la **Univers
 
 - Python 3.10+
 - API Keys (opcionales pero recomendadas):
-  - **GROQ_API_KEY** — Para enriquecimiento con IA (Llama 3.3 70B)
-  - **ASSEMBLYAI_API_KEY** — Para transcripción de audio a texto
+  - **GROQ_API_KEY** — Para enriquecimiento con IA (Llama 3.3 70B) y transcripción de audio (Whisper)
 
 ## 🚀 Instalación
 
@@ -50,8 +49,8 @@ pip install -r requirements.txt
 # 4. Configurar variables de entorno (opcional)
 # Crear archivo .env con:
 GROQ_API_KEY=tu_api_key_aqui
-ASSEMBLYAI_API_KEY=tu_api_key_aqui
 SECRET_KEY=una-clave-secreta-aleatoria
+# ASSEMBLYAI_API_KEY ya no se requiere (transcripción migrada a Groq Whisper)
 
 # 5. Ejecutar
 python app.py
@@ -90,7 +89,9 @@ Genera documentos del proceso de Patrón para la Maestría:
 - Soporte para diferentes líneas de investigación
 
 ### 🎙️ Transcripción de Audio
-Transcribe archivos de audio a texto usando AssemblyAI.
+Transcribe archivos de audio a texto usando **Groq Whisper** (`whisper-large-v3`, gratuito).
+Genera automáticamente un resumen estructurado en 3 secciones (Puntos Tratados, Desarrollo, Acuerdos) usando Groq LLM.
+Descarga el resultado como archivo `.txt` con timestamps por segmento.
 
 ### 📉 Informe de Notas
 Genera informes de notas para estudiantes.
@@ -128,8 +129,8 @@ La aplicación usa **Groq (Llama 3.3 70B)** para mejorar el texto que el usuario
 
 ### Variables de entorno
 ```env
-GROQ_API_KEY=gsk_...       # Requerida para IA
-IA_COOLDOWN_SECONDS=600    # Opcional: cooldown inicial en segundos (default: 600)
+GROQ_API_KEY=gsk_...         # Requerida para IA (enrichment + transcripción)
+IA_COOLDOWN_SECONDS=600      # Opcional: cooldown inicial en segundos (default: 600)
 ```
 
 ---
