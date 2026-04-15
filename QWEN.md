@@ -34,7 +34,7 @@ templates/ → HTML forms (sidebar navega a secciones)
 
 ## Base de Datos de Docentes
 - **Tabla**: `docentes(id, titulo_grado, nombre, post_grado, cargo, carrera, es_director)`
-- **Seed**: 13 docentes (10 PINE + Decano Facultad + Director Investigación ULEAM + Vicerrectora Académica ULEAM)
+- **Seed**: 13 docentes (10 PINE + Decano Facultad + Dir. Investigación, Publicaciones y Servicio Bibliográficos + Vicerrectora Académica)
 - **Uso**: Convocatorias y oficios generan filas dinámicamente (sin límite fijo)
 - **Funciones extra**: `get_docentes_by_carrera(carrera)`, `get_all_carreras()`
 
