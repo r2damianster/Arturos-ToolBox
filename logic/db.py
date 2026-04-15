@@ -14,6 +14,9 @@ DOCENTES_INICIALES = [
     ("Dr.", "Arturo Rodríguez Zambrano", "PhD.", "Docente", "Pedagogía de los Idiomas Nacionales y Extranjeros", False),
     ("Dr.", "Jhonny Villafuerte Holguín", "PhD.", "Docente", "Pedagogía de los Idiomas Nacionales y Extranjeros", False),
     ("Lic.", "Cintya Zambrano Zambrano", "Mg.", "Docente", "Pedagogía de los Idiomas Nacionales y Extranjeros", False),
+    ("Dr.", "Pedro Quijije Anchundia", "PhD.", "Decano", "Facultad de Educación y Turismo", False),
+    ("Lic.", "Kelver Alfredo Delgado Reyes", "Mg.", "Director", "Departamento de Investigación ULEAM", False),
+    ("Dra.", "Jackelinesta Terranova Ruiz", "PhD.", "Vicerrectora Académica", "ULEAM", False),
 ]
 
 
@@ -96,3 +99,24 @@ def delete_docente(docente_id):
     conn.execute("DELETE FROM docentes WHERE id = ?", (docente_id,))
     conn.commit()
     conn.close()
+
+
+def get_docentes_by_carrera(carrera):
+    """Obtiene todos los docentes de una carrera específica."""
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM docentes WHERE carrera = ? ORDER BY es_director DESC, nombre ASC",
+        (carrera,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_all_carreras():
+    """Obtiene lista de carreras únicas en la BD."""
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT DISTINCT carrera FROM docentes ORDER BY carrera ASC"
+    ).fetchall()
+    conn.close()
+    return [r['carrera'] for r in rows]

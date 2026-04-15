@@ -100,6 +100,27 @@ PROMPTS = {
         "max_tokens": 250,
         "temperature": 0.3,
     },
+    "oficio_asunto": {
+        "role": "Eres un asistente de redacción administrativa universitaria.",
+        "instruction": (
+            "TAREA: Mejora el asunto de un oficio universitario.\n"
+            "REGLAS: Hazlo claro, formal y conciso. No cambies el significado original.\n"
+            "FORMATO: Una sola línea. Máximo 120 caracteres."
+        ),
+        "max_tokens": 60,
+        "temperature": 0.3,
+    },
+    "oficio_cuerpo": {
+        "role": "Eres un asistente de redacción administrativa universitaria.",
+        "instruction": (
+            "TAREA: Redacta o mejora el cuerpo de un oficio universitario.\n"
+            "REGLAS: Formaliza el lenguaje, mejora la coherencia, sé preciso. No inventes información. "
+            "Usa estructura: saludo institucional → exposición → solicitud/despedida formal.\n"
+            "FORMATO: 2-4 párrafos. Máximo 350 palabras."
+        ),
+        "max_tokens": 350,
+        "temperature": 0.4,
+    },
 }
 
 

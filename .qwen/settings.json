@@ -4,7 +4,10 @@
       "Bash(type *)",
       "Bash(findstr *)",
       "Bash(git checkout *)",
-      "Bash(taskkill *)"
+      "Bash(taskkill *)",
+      "Bash(move *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   },
   "$version": 3

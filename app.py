@@ -26,7 +26,8 @@ def configurar_rutas(app):
         ('routes.maestrias_routes', 'maestrias_bp'),
         ('routes.transcripcion_routes', 'transcripcion_bp'),
         ('routes.docentes_routes', 'docentes_bp'),
-        ('routes.ia_routes', 'ia_bp')
+        ('routes.ia_routes', 'ia_bp'),
+        ('routes.oficios_routes', 'oficios_bp')
     ]
 
     for module_path, bp_name in blueprints:

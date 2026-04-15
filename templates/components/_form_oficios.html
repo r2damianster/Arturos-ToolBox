@@ -1,0 +1,256 @@
+<div class="container" style="max-width:800px;">
+    <h1>📄 Generador de Oficios</h1>
+
+    <form action="{{ url_for('oficios.oficio_generar') }}" method="POST" id="form_oficios">
+        <fieldset>
+            <legend>Identificación del Oficio</legend>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                    <label>N.º Oficio:</label>
+                    <input type="text" name="num_oficio" placeholder="Ej: OFICIO-001-2026" required>
+                </div>
+                <div>
+                    <label>Ciudad:</label>
+                    <input type="text" name="ciudad" value="Manta" required>
+                </div>
+                <div>
+                    <label>Fecha de Emisión:</label>
+                    <input type="date" onchange="convertirFechaLarga(this, 'fecha_larga_oficio')" required>
+                    <input type="hidden" name="fecha_emision" id="fecha_larga_oficio">
+                </div>
+                <div>
+                    <label>Tono del Oficio:</label>
+                    <select name="tono" required>
+                        <option value="formal" selected>🎩 Formal</option>
+                        <option value="cordial">🤝 Cordial</option>
+                        <option value="directo">🎯 Directo</option>
+                        <option value="urgente">⚡ Urgente</option>
+                    </select>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Destinatario</legend>
+            <div style="margin-bottom:12px;">
+                <label>Filtrar por carrera/dependencia:</label>
+                <select id="select_carrera_oficio" onchange="cargarDestinatariosOficio()">
+                    <option value="">-- Todas las carreras/dependencias --</option>
+                </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                <div style="grid-column:1/-1;">
+                    <label>Seleccione el destinatario:</label>
+                    <select id="select_destinatario" onchange="llenarDestinatarioOficio()" required>
+                        <option value="" disabled selected>-- Seleccione un destinatario --</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Nombre completo:</label>
+                    <input type="text" name="destinatario_nombre" id="destinatario_nombre" required readonly>
+                </div>
+                <div>
+                    <label>Cargo:</label>
+                    <input type="text" name="destinatario_cargo" id="destinatario_cargo" required readonly>
+                </div>
+                <div>
+                    <label>Carrera/Dependencia:</label>
+                    <input type="text" name="destinatario_carrera" id="destinatario_carrera" required readonly>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Contenido del Oficio</legend>
+
+            <!-- Enriquecer con IA -->
+            <div style="margin-bottom:12px;padding:10px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button type="button" onclick="enriquecerOficioIA()"
+                        style="padding:6px 16px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.85em;">
+                        ✨ Enriquecer con IA
+                    </button>
+                    <span id="ia-oficio-status" style="font-size:0.8rem;color:#64748b;"></span>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr;gap:12px;">
+                <div>
+                    <label>Asunto:</label>
+                    <input type="text" name="asunto" id="oficio_asunto" placeholder="Resumen breve del oficio" required>
+                </div>
+                <div>
+                    <label>Cuerpo del Oficio:</label>
+                    <textarea name="cuerpo" id="oficio_cuerpo" rows="8" placeholder="Detalle del contenido del oficio..." required></textarea>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Firmante</legend>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                <div style="grid-column:1/-1;">
+                    <label>Seleccione el firmante:</label>
+                    <select id="select_firmante" onchange="llenarFirmanteOficio()" required>
+                        <option value="" disabled selected>-- Seleccione un firmante --</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Título:</label>
+                    <input type="text" name="firmante_titulo" id="firmante_titulo" placeholder="Ej: Dr." required readonly>
+                </div>
+                <div>
+                    <label>Nombre completo:</label>
+                    <input type="text" name="firmante_nombre" id="firmante_nombre" required readonly>
+                </div>
+                <div>
+                    <label>Cargo:</label>
+                    <input type="text" name="firmante_cargo" id="firmante_cargo" required readonly>
+                </div>
+                <div>
+                    <label>Iniciales elaborador:</label>
+                    <input type="text" name="iniciales" placeholder="Ej: ARZ/ddm" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <button type="submit" class="submit-btn">📄 Generar Oficio</button>
+    </form>
+
+    <script>
+    let destinatariosOficio = [];
+
+    // Cargar carreras y destinatarios al iniciar
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cargar carreras
+        fetch('/util/oficio_carreras')
+            .then(r => r.json())
+            .then(carreras => {
+                const sel = document.getElementById('select_carrera_oficio');
+                carreras.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.textContent = c;
+                    sel.appendChild(opt);
+                });
+            });
+
+        // Cargar todos los destinatarios
+        cargarDestinatariosOficio();
+    });
+
+    function cargarDestinatariosOficio() {
+        const carrera = document.getElementById('select_carrera_oficio').value;
+        const url = carrera
+            ? `/util/oficio_destinatarios?carrera=${encodeURIComponent(carrera)}`
+            : '/util/oficio_destinatarios';
+
+        fetch(url)
+            .then(r => r.json())
+            .then(docentes => {
+                destinatariosOficio = docentes;
+                const selDest = document.getElementById('select_destinatario');
+                const selFirm = document.getElementById('select_firmante');
+
+                selDest.innerHTML = '<option value="" disabled selected>-- Seleccione un destinatario --</option>';
+                selFirm.innerHTML = '<option value="" disabled selected>-- Seleccione un firmante --</option>';
+
+                docentes.forEach(d => {
+                    const nombreCompleto = `${d.titulo_grado} ${d.nombre}, ${d.post_grado}`;
+
+                    // Destinatario
+                    const opt1 = document.createElement('option');
+                    opt1.value = d.id;
+                    opt1.dataset.nombre = d.nombre;
+                    opt1.dataset.cargo = d.cargo;
+                    opt1.dataset.carrera = d.carrera;
+                    opt1.dataset.titulo = d.titulo_grado;
+                    opt1.dataset.postgrado = d.post_grado;
+                    opt1.textContent = nombreCompleto + ' — ' + d.cargo;
+                    selDest.appendChild(opt1);
+
+                    // Firmante (mismos datos)
+                    const opt2 = document.createElement('option');
+                    opt2.value = d.id;
+                    opt2.dataset.nombre = d.nombre;
+                    opt2.dataset.cargo = d.cargo;
+                    opt2.dataset.carrera = d.carrera;
+                    opt2.dataset.titulo = d.titulo_grado;
+                    opt2.dataset.postgrado = d.post_grado;
+                    opt2.textContent = nombreCompleto + ' — ' + d.cargo;
+                    selFirm.appendChild(opt2);
+                });
+            });
+    }
+
+    function llenarDestinatarioOficio() {
+        const sel = document.getElementById('select_destinatario');
+        const opt = sel.options[sel.selectedIndex];
+        document.getElementById('destinatario_nombre').value = opt.dataset.nombre || '';
+        document.getElementById('destinatario_cargo').value = opt.dataset.cargo || '';
+        document.getElementById('destinatario_carrera').value = opt.dataset.carrera || '';
+    }
+
+    function llenarFirmanteOficio() {
+        const sel = document.getElementById('select_firmante');
+        const opt = sel.options[sel.selectedIndex];
+        document.getElementById('firmante_titulo').value = opt.dataset.titulo || '';
+        document.getElementById('firmante_nombre').value = opt.dataset.nombre || '';
+        document.getElementById('firmante_cargo').value = opt.dataset.cargo || '';
+    }
+
+    // ── Enriquecer con IA (Oficio) ──
+    function enriquecerOficioIA() {
+        const asunto = document.getElementById('oficio_asunto').value;
+        const cuerpo = document.getElementById('oficio_cuerpo').value;
+        const statusEl = document.getElementById('ia-oficio-status');
+
+        if (!asunto && !cuerpo) {
+            statusEl.textContent = '⚠️ Escribe algo primero.';
+            statusEl.style.color = '#dc2626';
+            return;
+        }
+
+        statusEl.textContent = '⏳ Procesando...';
+        statusEl.style.color = '#64748b';
+
+        const calls = [];
+        if (asunto && asunto.trim().length >= 3) {
+            calls.push(fetch('/util/ia_enriquecer', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ contexto: 'oficio_asunto', texto: asunto })
+            }).then(async r => {
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.cooldown_formatted ? `Espera ${d.cooldown_formatted}` : d.error);
+                return { field: 'asunto', texto: d.texto_enriquecido };
+            }));
+        }
+        if (cuerpo && cuerpo.trim().length >= 3) {
+            calls.push(fetch('/util/ia_enriquecer', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ contexto: 'oficio_cuerpo', texto: cuerpo })
+            }).then(async r => {
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.cooldown_formatted ? `Espera ${d.cooldown_formatted}` : d.error);
+                return { field: 'cuerpo', texto: d.texto_enriquecido };
+            }));
+        }
+
+        Promise.all(calls)
+            .then(results => {
+                results.forEach(r => {
+                    if (r.field === 'asunto')
+                        document.getElementById('oficio_asunto').value = r.texto;
+                    else
+                        document.getElementById('oficio_cuerpo').value = r.texto;
+                });
+                statusEl.textContent = '✅ Enriquecido. Podés editar.';
+                statusEl.style.color = '#16a34a';
+            })
+            .catch(err => {
+                statusEl.textContent = `❌ ${err.message}`;
+                statusEl.style.color = '#dc2626';
+            });
+    }
+    </script>
+</div>

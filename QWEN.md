@@ -30,15 +30,25 @@ templates/ → HTML forms (sidebar navega a secciones)
 | maestrias_bp | `/util/maestria` | Documentos PAT Maestría |
 | transcripcion_bp | `/util/transcripcion` | Transcripción audio |
 | reportes_bp | `/util/...` | Informes de notas |
+| oficios_bp | `/util/oficio_*` | Generador de oficios con IA |
 
 ## Base de Datos de Docentes
 - **Tabla**: `docentes(id, titulo_grado, nombre, post_grado, cargo, carrera, es_director)`
-- **Seed**: 10 docentes de Pedagogía de Idiomas Nacionales y Extranjeros
-- **Uso**: Convocatorias generan filas dinámicamente (sin límite fijo)
+- **Seed**: 13 docentes (10 PINE + Decano Facultad + Director Investigación ULEAM + Vicerrectora Académica ULEAM)
+- **Uso**: Convocatorias y oficios generan filas dinámicamente (sin límite fijo)
+- **Funciones extra**: `get_docentes_by_carrera(carrera)`, `get_all_carreras()`
+
+## Módulo Oficios (NUEVO)
+- **Template**: `resources/HOJA_CARRERA_PINE.docx` (hoja membretada PINE)
+- **Endpoint principal**: `POST /util/oficio_generar`
+- **Endpoints auxiliares**: `GET /util/oficio_carreras`, `GET /util/oficio_destinatarios`
+- **IA Contextos**: `oficio_asunto`, `oficio_cuerpo`
+- **Tonos disponibles**: formal, cordial, directo, urgente
+- **Flujo**: Selecciona destinatario → Elige firmante → Escribe asunto/cuerpo → (Opcional: IA enriquece) → Genera .docx
 
 ## IA Enriquecimiento
 - **Endpoint**: `POST /util/ia_enriquecer`
-- **Contextos**: `acta_aspectos`, `acta_desarrollo`, `acta_compromisos`, `convocatoria_asunto`, `convocatoria_descripcion`
+- **Contextos**: `acta_aspectos`, `acta_desarrollo`, `acta_compromisos`, `convocatoria_asunto`, `convocatoria_descripcion`, `oficio_asunto`, `oficio_cuerpo`
 - **Rate limit**: Default 10 min, configurable desde admin panel
 - **Flujo**: Usuario escribe → click "✨ Enriquecer con IA" → IA mejora texto in-place → usuario edita → genera .docx
 
@@ -73,10 +83,12 @@ PORT=10000                     # Puerto del servidor
 
 ## Archivos clave a revisar antes de trabajar
 - `logic/convocatorias.py` — Generación de convocatorias con filas dinámicas
+- `logic/oficios_logic.py` — Generación de oficios con IA y tonos personalizables
 - `logic/ia_enriquecer.py` — Servicio IA (Groq/Llama) con rate limiting
 - `logic/transcripcion_logic.py` — Transcripción Groq Whisper + resumen LLM
-- `logic/db.py` — CRUD SQLite docentes
+- `logic/db.py` — CRUD SQLite docentes + funciones get_docentes_by_carrera, get_all_carreras
 - `routes/ia_routes.py` — Endpoints IA
+- `routes/oficios_routes.py` — Endpoints oficios
 - `routes/docentes_routes.py` — Auth + admin + API docentes
 
 ## Uso con múltiples asistentes IA

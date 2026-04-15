@@ -11,6 +11,7 @@ Aplicación web Flask para la gestión de documentos académicos de la **Univers
 - [Uso](#-uso)
 - [Funcionalidades](#-funcionalidades)
   - [📝 Acta Técnica con IA](#-acta-técnica-con-ia)
+  - [📄 Generador de Oficios](#-generador-de-oficios)
   - [👨‍🏫 Convocatoria a Docentes](#-convocatoria-a-docentes)
   - [🎓 Convocatoria a Estudiantes](#-convocatoria-a-estudiantes)
   - [📦 Documentos PAT Maestría](#-documentos-pat-maestría)
@@ -66,8 +67,20 @@ Genera actas técnicas universitarias con:
 - Información general de la reunión (número, fecha, lugar, horario)
 - Lista de participantes/firmantes
 - **✨ Enriquecer con IA**: Mejora automáticamente los campos de puntos del orden del día, desarrollo de la reunión y compromisos.
-- 🎙️ Extracción de notas desde audio (AssemblyAI)
+- 🎙️ Extracción de notas desde audio (Groq Whisper)
 - Evidencias fotográficas opcionales
+
+### 📄 Generador de Oficios
+Genera oficios formales dirigidos a cualquier persona de la base de datos:
+- **Selección de destinatario**: Filtra por carrera/dependencia o busca entre todos los docentes.
+- **Selección de firmante**: Elige quién firma el oficio desde la BD.
+- **✨ Enriquecer con IA**: Mejora automáticamente el asunto y el cuerpo del oficio.
+- **Tonos disponibles**:
+  - 🎩 **Formal**: Lenguaje institucional elevado y protocolar.
+  - 🤝 **Cordial**: Formal pero cercano y amable.
+  - 🎯 **Directo**: Conciso, sin rodeos.
+  - ⚡ **Urgente**: Destaca prioridad e inmediatez.
+- Usa la hoja membretada `HOJA_CARRERA_PINE.docx` como plantilla base.
 
 ### 👨‍🏫 Convocatoria a Docentes
 Genera convocatorias dirigidas a docentes con:
