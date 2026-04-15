@@ -15,7 +15,7 @@ DOCENTES_INICIALES = [
     ("Dr.", "Jhonny Villafuerte Holguín", "PhD.", "Docente", "Pedagogía de los Idiomas Nacionales y Extranjeros", False),
     ("Lic.", "Cintya Zambrano Zambrano", "Mg.", "Docente", "Pedagogía de los Idiomas Nacionales y Extranjeros", False),
     ("Dr.", "Pedro Quijije Anchundia", "PhD.", "Decano", "Facultad de Educación y Turismo", False),
-    ("Lic.", "Klever Alfredo Delgado Reyes", "Mg.", "Director", "Dirección de Investigación, Publicaciones y Servicio Bibliográficos", False),
+    ("Lic.", "Klever Alfredo Delgado Reyes", "Mg.", "Director", "Dirección de Investigación, Publicaciones y Servicio Bibliográficos - ULEAM", False),
     ("Dra.", "Jackeline Terranova Ruiz", "PhD.", "Vicerrectora Académica", "ULEAM", False),
 ]
 

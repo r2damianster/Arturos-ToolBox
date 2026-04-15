@@ -22,6 +22,7 @@ def oficio_generar():
             'firmante_cargo':        request.form.get('firmante_cargo', ''),
             'iniciales':             request.form.get('iniciales', ''),
             'tono':                  request.form.get('tono', 'formal'),
+            'copia_a':               request.form.get('copia_a', ''),
         }
 
         logic = OficioLogic()

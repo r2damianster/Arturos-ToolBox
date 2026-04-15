@@ -45,18 +45,38 @@
                         <option value="" disabled selected>-- Seleccione un destinatario --</option>
                     </select>
                 </div>
-                <div>
+                <div style="grid-column:1/-1;">
                     <label>Nombre completo:</label>
-                    <input type="text" name="destinatario_nombre" id="destinatario_nombre" required readonly>
+                    <textarea name="destinatario_nombre" id="destinatario_nombre" rows="2" required></textarea>
                 </div>
-                <div>
+                <div style="grid-column:1/-1;">
                     <label>Cargo:</label>
-                    <input type="text" name="destinatario_cargo" id="destinatario_cargo" required readonly>
+                    <textarea name="destinatario_cargo" id="destinatario_cargo" rows="2" required></textarea>
                 </div>
-                <div>
+                <div style="grid-column:1/-1;">
                     <label>Carrera/Dependencia:</label>
-                    <input type="text" name="destinatario_carrera" id="destinatario_carrera" required readonly>
+                    <textarea name="destinatario_carrera" id="destinatario_carrera" rows="2" required></textarea>
                 </div>
+            </div>
+            <div style="margin-top:8px; font-size:0.85em; color:#666;">
+                * Seleccione un destinatario de la lista para agregarlo. Puede seleccionar varios o editar el texto libremente.
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Con Copia a (CC)</legend>
+            <div style="margin-bottom:12px;">
+                <label>Seleccione personas para agregar a CC:</label>
+                <select id="select_copia_add" onchange="agregarCopiaOficio()">
+                    <option value="" disabled selected>-- Seleccione alguien para añadir a CC --</option>
+                </select>
+                <button type="button" onclick="document.getElementById('copia_a').value=''" style="margin-top:8px; padding:4px 12px;">Limpiar CC</button>
+            </div>
+            <div>
+                <label>Personas en CC:</label>
+                <textarea name="copia_a" id="copia_a" rows="3" placeholder="Ej: Dra. Jackeline Terranova Ruiz - Vicerrectora Académica&#10;Dr. Pedro Quijije - Decano"></textarea>
+                <small style="display:block; margin-top:4px; color:#666;">Puede editar este texto libremente. Use la etiqueta {{COPIA_A}} en la plantilla de Word.</small>
+            </div>
             </div>
         </fieldset>
 
@@ -179,6 +199,14 @@
                     opt2.dataset.postgrado = d.post_grado;
                     opt2.textContent = nombreCompleto + ' — ' + d.cargo;
                     selFirm.appendChild(opt2);
+
+                    // Copia A (mismos datos)
+                    const opt3 = document.createElement('option');
+                    opt3.value = d.id;
+                    opt3.dataset.nombreCompleto = nombreCompleto;
+                    opt3.dataset.cargo = d.cargo;
+                    opt3.textContent = nombreCompleto + ' — ' + d.cargo;
+                    document.getElementById('select_copia_add').appendChild(opt3);
                 });
             });
     }
@@ -186,9 +214,31 @@
     function llenarDestinatarioOficio() {
         const sel = document.getElementById('select_destinatario');
         const opt = sel.options[sel.selectedIndex];
-        document.getElementById('destinatario_nombre').value = opt.dataset.nombre || '';
-        document.getElementById('destinatario_cargo').value = opt.dataset.cargo || '';
-        document.getElementById('destinatario_carrera').value = opt.dataset.carrera || '';
+        if(!opt || !opt.value) return;
+
+        const nombreEl = document.getElementById('destinatario_nombre');
+        const cargoEl = document.getElementById('destinatario_cargo');
+        const carreraEl = document.getElementById('destinatario_carrera');
+
+        // Append if there is already text
+        nombreEl.value = nombreEl.value ? nombreEl.value + '\n' + (opt.dataset.nombre || '') : (opt.dataset.nombre || '');
+        cargoEl.value = cargoEl.value ? cargoEl.value + '\n' + (opt.dataset.cargo || '') : (opt.dataset.cargo || '');
+        carreraEl.value = carreraEl.value ? carreraEl.value + '\n' + (opt.dataset.carrera || '') : (opt.dataset.carrera || '');
+
+        // Reset select to allow selecting the same or another
+        sel.selectedIndex = 0;
+    }
+
+    function agregarCopiaOficio() {
+        const sel = document.getElementById('select_copia_add');
+        const opt = sel.options[sel.selectedIndex];
+        if(!opt || !opt.value) return;
+
+        const copiaEl = document.getElementById('copia_a');
+        const nuevaCopia = opt.dataset.nombreCompleto + ' - ' + opt.dataset.cargo;
+
+        copiaEl.value = copiaEl.value ? copiaEl.value + '\n' + nuevaCopia : nuevaCopia;
+        sel.selectedIndex = 0;
     }
 
     function llenarFirmanteOficio() {
