@@ -248,7 +248,9 @@ def aplanar_archivos(archivos: list) -> bytes:
 
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for f in archivos:
-            nombre_base = os.path.basename(f.filename) or f.filename
+            # Reemplazar backslashes por slashes para manejar rutas de Windows en servidores Linux
+            ruta_limpia = f.filename.replace("\\", "/")
+            nombre_base = os.path.basename(ruta_limpia) or ruta_limpia
             if nombre_base in nombres_vistos:
                 nombres_vistos[nombre_base] += 1
                 nombre, ext = os.path.splitext(nombre_base)

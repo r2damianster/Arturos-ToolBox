@@ -2,11 +2,11 @@
     <h1>📁 Aplanar Archivos</h1>
     <form action="/util/copiar-archivos" method="post" enctype="multipart/form-data">
         <fieldset>
-            <legend>Archivos</legend>
-            <label>Selecciona los archivos que quieres reunir en una sola carpeta:</label>
-            <input type="file" name="archivos" multiple required
+            <legend>Carpeta</legend>
+            <label>Selecciona la carpeta que quieres aplanar (se incluirán todos sus archivos):</label>
+            <input type="file" name="archivos" webkitdirectory directory multiple required
                    onchange="listarArchivos(this, 'lista-copiar', '📄')">
-            <span class="help-text">Recibirás un ZIP con todos los archivos dentro de <code>archivos_extraidos/</code>.</span>
+            <span class="help-text">Se extraerán todos los archivos de las subcarpetas y se guardarán en <code>archivos_extraidos/</code>.</span>
             <div id="lista-copiar"></div>
         </fieldset>
         <button type="submit" class="submit-btn">⬇️ Descargar ZIP</button>
