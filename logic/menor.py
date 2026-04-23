@@ -59,24 +59,43 @@ class ReportGeneratorLogic:
         return parts[1].strip() if len(parts) > 2 else "ASIGNATURA DESCONOCIDA"
 
     def process_excel_data(self, excel_file, parcial_id):
-        df = pd.read_excel(excel_file, dtype={'Nombre': str, 'Apellido(s)': str})
+        # 1. Asegurar puntero al inicio
+        excel_file.seek(0)
+        
+        # 2. Detectar motor para .ods
+        ext = os.path.splitext(excel_file.filename)[1].lower()
+        engine = 'odf' if ext == '.ods' else None
+        
+        df = pd.read_excel(excel_file, engine=engine)
 
         p = self.COLUMNAS_POR_PARCIAL.get(parcial_id)
         if not p:
             raise Exception("Parcial no válido.")
 
-        cols_req = ['Nombre', 'Apellido(s)', p['C1'], p['C2'], p['C3'], p['C4'], p['TOTAL']]
+        # Identificar columnas dinámicamente si no están exactas
+        col_nombre = 'Nombre'
+        col_apellido = 'Apellido(s)'
+        
+        cols_lower = {str(c).lower(): c for c in df.columns}
+        if 'nombre' in cols_lower: col_nombre = cols_lower['nombre']
+        elif 'nombres' in cols_lower: col_nombre = cols_lower['nombres']
+        
+        if 'apellido(s)' in cols_lower: col_apellido = cols_lower['apellido(s)']
+        elif 'apellidos' in cols_lower: col_apellido = cols_lower['apellidos']
+        elif 'apellido' in cols_lower: col_apellido = cols_lower['apellido']
+
+        cols_req = [col_nombre, col_apellido, p['C1'], p['C2'], p['C3'], p['C4'], p['TOTAL']]
         for col in cols_req:
             if col not in df.columns:
                 raise Exception(f"Falta columna: {col}")
-            if col not in ['Nombre', 'Apellido(s)']:
+            if col not in [col_nombre, col_apellido]:
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
         df_reprobados = df[df[p['TOTAL']] < p['UMBRAL']].copy()
 
         estudiantes = []
         for _, row in df_reprobados.iterrows():
-            nombre = f"{row['Nombre']} {row['Apellido(s)']}".strip()
+            nombre = f"{row[col_nombre]} {row[col_apellido]}".strip()
 
             if parcial_id == '1':
                 estrategia = "Acompañamiento pedagógico continuo y tutoría académica preventiva."

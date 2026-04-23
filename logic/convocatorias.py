@@ -88,24 +88,76 @@ class ConvocatoriaLogic:
                     new_row.cells[2].text = estudiante
                     new_row.cells[3].text = ""
 
+    def _identificar_columnas_nombres(self, df):
+        """Busca índices de columnas que parezcan nombres y apellidos."""
+        idx_nombre = 0
+        idx_apellido = 1
+        
+        cols = [str(c).lower() for c in df.columns]
+        
+        # Prioridad 1: Buscar "apellido" y "nombre"
+        for i, c in enumerate(cols):
+            if 'apellido' in c:
+                idx_apellido = i
+            elif 'nombre' in c:
+                idx_nombre = i
+                
+        # Si son iguales (no encontró uno), intentar ser más específico
+        if idx_nombre == idx_apellido:
+            # Si solo encontró "nombre" pero no "apellido", tal vez es col 0 y 1
+            idx_nombre = 0
+            idx_apellido = 1
+            
+        return idx_nombre, idx_apellido
+
     def procesar_excel_estudiantes(self, lista_archivos):
         """Une múltiples excels, limpia y ordena nombres."""
         nombres_consolidados = []
+        print(f"DEBUG: Procesando {len(lista_archivos)} archivos de estudiantes.")
+        
         for excel_file in lista_archivos:
             try:
-                df = pd.read_excel(excel_file)
+                # 1. Asegurar puntero al inicio
+                excel_file.seek(0)
+                
+                # 2. Leer según extensión
+                ext = os.path.splitext(excel_file.filename)[1].lower()
+                engine = 'odf' if ext == '.ods' else None
+                
+                df = pd.read_excel(excel_file, engine=engine)
+                
+                if df.empty:
+                    print(f"ADVERTENCIA: El archivo {excel_file.filename} está vacío.")
+                    continue
+                
+                # 3. Identificar columnas
+                idx_n, idx_a = self._identificar_columnas_nombres(df)
+                
+                count = 0
                 for _, row in df.iterrows():
-                    nombre = str(row.iloc[0]).strip()
-                    apellido = str(row.iloc[1]).strip()
+                    if len(row) <= max(idx_n, idx_a): continue
+                    
+                    nombre = str(row.iloc[idx_n]).strip()
+                    apellido = str(row.iloc[idx_a]).strip()
                     
                     if nombre and apellido and "nan" not in (nombre.lower() + apellido.lower()):
+                        # Evitar que los encabezados entren como nombres si se detectaron mal
+                        if nombre.lower() == "nombre" or apellido.lower() == "apellido":
+                            continue
+                            
                         nombre_completo = f"{apellido} {nombre}".upper()
                         nombres_consolidados.append(nombre_completo)
+                        count += 1
+                
+                print(f"DEBUG: Archivo '{excel_file.filename}' -> {count} estudiantes encontrados.")
+                
             except Exception as e:
-                print(f"Error procesando archivo: {e}")
+                print(f"Error procesando archivo '{getattr(excel_file, 'filename', 'S/N')}': {e}")
                 continue
         
-        return sorted(list(set(nombres_consolidados)), key=self.normalizar)
+        finales = sorted(list(set(nombres_consolidados)), key=self.normalizar)
+        print(f"DEBUG: Total consolidado: {len(finales)} estudiantes.")
+        return finales
 
     def generar_docx(self, tipo, datos, excel_files=None, docentes_manuales=None):
         """Punto de entrada principal."""
