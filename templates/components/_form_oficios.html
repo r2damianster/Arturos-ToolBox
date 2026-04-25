@@ -276,9 +276,20 @@
             }));
         }
         if (cuerpo && cuerpo.trim().length >= 3) {
+            // Enriquecer cuerpo existente
             calls.push(fetch('/util/ia_enriquecer', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ contexto: 'oficio_cuerpo', texto: cuerpo })
+            }).then(async r => {
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.cooldown_formatted ? `Espera ${d.cooldown_formatted}` : d.error);
+                return { field: 'cuerpo', texto: d.texto_enriquecido };
+            }));
+        } else if (asunto && asunto.trim().length >= 3) {
+            // Generar cuerpo desde el asunto si estaba vacío
+            calls.push(fetch('/util/ia_enriquecer', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ contexto: 'oficio_cuerpo_generar', texto: asunto })
             }).then(async r => {
                 const d = await r.json();
                 if (!r.ok) throw new Error(d.cooldown_formatted ? `Espera ${d.cooldown_formatted}` : d.error);

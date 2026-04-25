@@ -121,6 +121,28 @@ PROMPTS = {
         "max_tokens": 350,
         "temperature": 0.4,
     },
+    "convocatoria_descripcion_generar": {
+        "role": "Eres un asistente de redacción administrativa universitaria.",
+        "instruction": (
+            "TAREA: Genera el motivo/descripción de una convocatoria universitaria a partir del asunto dado.\n"
+            "REGLAS: Usa lenguaje formal e institucional. Expande el asunto en una descripción clara del "
+            "propósito de la convocatoria. No inventes fechas, nombres ni datos específicos.\n"
+            "FORMATO: 1-2 párrafos. Máximo 200 palabras."
+        ),
+        "max_tokens": 250,
+        "temperature": 0.5,
+    },
+    "oficio_cuerpo_generar": {
+        "role": "Eres un asistente de redacción administrativa universitaria.",
+        "instruction": (
+            "TAREA: Genera el cuerpo de un oficio universitario a partir del asunto dado.\n"
+            "REGLAS: Usa estructura formal: saludo institucional → exposición del motivo → "
+            "solicitud o comunicación → despedida formal. No inventes nombres ni datos que no estén en el asunto.\n"
+            "FORMATO: 2-3 párrafos. Máximo 300 palabras."
+        ),
+        "max_tokens": 350,
+        "temperature": 0.5,
+    },
 }
 
 
