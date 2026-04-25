@@ -89,13 +89,24 @@ class ConvocatoriaLogic:
                     new_row.cells[3].text = ""
 
     def _detectar_formato_excel(self, df):
-        """Detecta si el Excel tiene columnas separadas (nombre|apellido) o nombre completo."""
+        """Detecta si el Excel tiene columnas separadas (Nombre|Apellido) o nombre completo (Nombre|S1|S2...)."""
         if len(df.columns) < 2:
             return 'completo'
-        segunda_col = self.normalizar(str(df.columns[1]))
-        if 'apellido' in segunda_col:
+        cols_norm = [self.normalizar(str(c)) for c in df.columns]
+        if any('apellido' in c for c in cols_norm):
             return 'separado'
         return 'completo'
+
+    def _identificar_columnas_nombres(self, df):
+        """Busca índices de las columnas de nombre y apellido en formato separado."""
+        idx_nombre, idx_apellido = 0, 1
+        cols = [str(c).lower() for c in df.columns]
+        for i, c in enumerate(cols):
+            if 'apellido' in c:
+                idx_apellido = i
+            elif 'nombre' in c:
+                idx_nombre = i
+        return idx_nombre, idx_apellido
 
     def procesar_excel_estudiantes(self, lista_archivos):
         """Une múltiples excels, limpia y ordena nombres. Soporta dos formatos:
@@ -103,33 +114,52 @@ class ConvocatoriaLogic:
         - completo: primera columna ya contiene el nombre completo (Nombre | S1 | S2 ...)
         """
         nombres_consolidados = []
+        print(f"DEBUG: Procesando {len(lista_archivos)} archivos de estudiantes.")
+
         for excel_file in lista_archivos:
             try:
-                if hasattr(excel_file, 'seek'):
-                    excel_file.seek(0)
-                df = pd.read_excel(excel_file)
+                excel_file.seek(0)
+
+                ext = os.path.splitext(excel_file.filename)[1].lower()
+                engine = 'odf' if ext == '.ods' else None
+
+                df = pd.read_excel(excel_file, engine=engine)
+
                 if df.empty or len(df.columns) == 0:
+                    print(f"ADVERTENCIA: El archivo {excel_file.filename} está vacío.")
                     continue
 
                 formato = self._detectar_formato_excel(df)
+                count = 0
 
-                for _, row in df.iterrows():
-                    if formato == 'separado':
-                        nombre = str(row.iloc[0]).strip()
-                        apellido = str(row.iloc[1]).strip()
-                        if nombre and apellido and "nan" not in (nombre.lower() + apellido.lower()):
-                            nombre_completo = f"{apellido} {nombre}".upper()
-                            nombres_consolidados.append(nombre_completo)
-                    else:
+                if formato == 'separado':
+                    idx_n, idx_a = self._identificar_columnas_nombres(df)
+                    for _, row in df.iterrows():
+                        if len(row) <= max(idx_n, idx_a):
+                            continue
+                        nombre = str(row.iloc[idx_n]).strip()
+                        apellido = str(row.iloc[idx_a]).strip()
+                        if nombre.lower() in ('nombre', '') or apellido.lower() in ('apellido', 'apellido(s)', ''):
+                            continue
+                        if "nan" not in (nombre.lower() + apellido.lower()):
+                            nombres_consolidados.append(f"{apellido} {nombre}".upper())
+                            count += 1
+                else:
+                    for _, row in df.iterrows():
                         nombre_completo = str(row.iloc[0]).strip()
-                        if nombre_completo and "nan" not in nombre_completo.lower():
+                        if nombre_completo and nombre_completo.lower() != 'nombre' and "nan" not in nombre_completo.lower():
                             nombres_consolidados.append(nombre_completo.upper())
+                            count += 1
+
+                print(f"DEBUG: Archivo '{excel_file.filename}' ({formato}) -> {count} estudiantes.")
 
             except Exception as e:
-                print(f"Error procesando archivo '{getattr(excel_file, 'filename', excel_file)}': {e}")
+                print(f"Error procesando archivo '{getattr(excel_file, 'filename', 'S/N')}': {e}")
                 continue
 
-        return sorted(list(set(nombres_consolidados)), key=self.normalizar)
+        finales = sorted(list(set(nombres_consolidados)), key=self.normalizar)
+        print(f"DEBUG: Total consolidado: {len(finales)} estudiantes.")
+        return finales
 
     def generar_docx(self, tipo, datos, excel_files=None, docentes_manuales=None):
         """Punto de entrada principal."""
