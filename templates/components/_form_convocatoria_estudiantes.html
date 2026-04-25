@@ -1,7 +1,7 @@
 <div class="container" style="max-width:800px;">
     <h1>🎓 Convocatoria a Estudiantes</h1>
 
-    <form action="{{ url_for('convocatorias.convocatoria_estudiante') }}" method="POST" enctype="multipart/form-data">
+    <form id="form_conv_estudiantes" action="{{ url_for('convocatorias.convocatoria_estudiante') }}" method="POST" enctype="multipart/form-data">
         <fieldset>
             <legend>Identificación</legend>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -122,8 +122,9 @@
 <script>
 // ── Enriquecer con IA (Convocatoria Estudiantes) ──
 function enriquecerConvEstudiantesIA() {
-    const asunto = document.querySelector('input[name="asunto"]').value;
-    const desc = document.querySelector('textarea[name="descripcion_convocatoria"]').value;
+    const form = document.getElementById('form_conv_estudiantes');
+    const asunto = form.querySelector('input[name="asunto"]').value;
+    const desc = form.querySelector('textarea[name="descripcion_convocatoria"]').value;
     const statusEl = document.getElementById('ia-conv-est-status');
 
     if (!asunto && !desc) {
@@ -161,9 +162,9 @@ function enriquecerConvEstudiantesIA() {
         .then(results => {
             results.forEach(r => {
                 if (r.field === 'asunto')
-                    document.querySelector('input[name="asunto"]').value = r.texto;
+                    form.querySelector('input[name="asunto"]').value = r.texto;
                 else
-                    document.querySelector('textarea[name="descripcion_convocatoria"]').value = r.texto;
+                    form.querySelector('textarea[name="descripcion_convocatoria"]').value = r.texto;
             });
             statusEl.textContent = '✅ Enriquecido. Podés editar.';
             statusEl.style.color = '#16a34a';

@@ -88,23 +88,47 @@ class ConvocatoriaLogic:
                     new_row.cells[2].text = estudiante
                     new_row.cells[3].text = ""
 
+    def _detectar_formato_excel(self, df):
+        """Detecta si el Excel tiene columnas separadas (nombre|apellido) o nombre completo."""
+        if len(df.columns) < 2:
+            return 'completo'
+        segunda_col = self.normalizar(str(df.columns[1]))
+        if 'apellido' in segunda_col:
+            return 'separado'
+        return 'completo'
+
     def procesar_excel_estudiantes(self, lista_archivos):
-        """Une múltiples excels, limpia y ordena nombres."""
+        """Une múltiples excels, limpia y ordena nombres. Soporta dos formatos:
+        - separado: columnas Nombre | Apellido(s) | ...
+        - completo: primera columna ya contiene el nombre completo (Nombre | S1 | S2 ...)
+        """
         nombres_consolidados = []
         for excel_file in lista_archivos:
             try:
+                if hasattr(excel_file, 'seek'):
+                    excel_file.seek(0)
                 df = pd.read_excel(excel_file)
+                if df.empty or len(df.columns) == 0:
+                    continue
+
+                formato = self._detectar_formato_excel(df)
+
                 for _, row in df.iterrows():
-                    nombre = str(row.iloc[0]).strip()
-                    apellido = str(row.iloc[1]).strip()
-                    
-                    if nombre and apellido and "nan" not in (nombre.lower() + apellido.lower()):
-                        nombre_completo = f"{apellido} {nombre}".upper()
-                        nombres_consolidados.append(nombre_completo)
+                    if formato == 'separado':
+                        nombre = str(row.iloc[0]).strip()
+                        apellido = str(row.iloc[1]).strip()
+                        if nombre and apellido and "nan" not in (nombre.lower() + apellido.lower()):
+                            nombre_completo = f"{apellido} {nombre}".upper()
+                            nombres_consolidados.append(nombre_completo)
+                    else:
+                        nombre_completo = str(row.iloc[0]).strip()
+                        if nombre_completo and "nan" not in nombre_completo.lower():
+                            nombres_consolidados.append(nombre_completo.upper())
+
             except Exception as e:
-                print(f"Error procesando archivo: {e}")
+                print(f"Error procesando archivo '{getattr(excel_file, 'filename', excel_file)}': {e}")
                 continue
-        
+
         return sorted(list(set(nombres_consolidados)), key=self.normalizar)
 
     def generar_docx(self, tipo, datos, excel_files=None, docentes_manuales=None):
