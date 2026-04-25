@@ -119,13 +119,24 @@ class ConvocatoriaLogic:
         for excel_file in lista_archivos:
             try:
                 excel_file.seek(0)
+                sniff = excel_file.read(8)
+                excel_file.seek(0)
+                is_html = sniff.lstrip().lower().startswith((b'<html', b'<?xml'))
 
                 ext = os.path.splitext(excel_file.filename)[1].lower()
-                engine = 'odf' if ext == '.ods' else None
 
-                df = pd.read_excel(excel_file, engine=engine)
+                if is_html:
+                    # Moodle exporta .xls como HTML — usar read_html
+                    tables = pd.read_html(excel_file, encoding='latin1', header=0)
+                    df = tables[0] if tables else None
+                elif ext == '.ods':
+                    df = pd.read_excel(excel_file, engine='odf')
+                elif ext == '.xls':
+                    df = pd.read_excel(excel_file, engine='xlrd')
+                else:
+                    df = pd.read_excel(excel_file, engine='openpyxl')
 
-                if df.empty or len(df.columns) == 0:
+                if df is None or df.empty or len(df.columns) == 0:
                     print(f"ADVERTENCIA: El archivo {excel_file.filename} está vacío.")
                     continue
 
@@ -151,7 +162,7 @@ class ConvocatoriaLogic:
                             nombres_consolidados.append(nombre_completo.upper())
                             count += 1
 
-                print(f"DEBUG: Archivo '{excel_file.filename}' ({formato}) -> {count} estudiantes.")
+                print(f"DEBUG: Archivo '{excel_file.filename}' ({formato}{'/html' if is_html else ''}) -> {count} estudiantes.")
 
             except Exception as e:
                 print(f"Error procesando archivo '{getattr(excel_file, 'filename', 'S/N')}': {e}")
