@@ -75,17 +75,6 @@
         <fieldset>
             <legend>4. Notas para el Acta</legend>
 
-            <!-- Botón enriquecer con IA -->
-            <div style="margin-bottom:16px;padding:12px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;">
-                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                    <button type="button" id="btn-enriquecer-acta" onclick="enriquecerActaConIA()"
-                        style="padding:8px 20px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.9em;">
-                        ✨ Enriquecer con IA
-                    </button>
-                    <span id="ia-acta-status" style="font-size:0.85rem;color:#64748b;"></span>
-                </div>
-            </div>
-
             <!-- Toggle manual / audio -->
             <div style="display:flex;gap:8px;margin-bottom:16px;">
                 <button type="button" id="btn-modo-manual"
@@ -141,6 +130,17 @@
                     <label>Acuerdos y compromisos finales:</label>
                     <textarea id="notas_compromisos" name="notas_compromisos" rows="3"
                         placeholder="Ej: Entregar sílabos corregidos antes del viernes, publicar cronograma en plataforma" required></textarea>
+                </div>
+            </div>
+
+            <!-- Mejorar notas con IA -->
+            <div style="margin-top:14px;padding:12px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <button type="button" id="btn-enriquecer-acta" onclick="enriquecerActaConIA()"
+                        style="padding:8px 20px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.9em;">
+                        ✨ Mejorar notas con IA
+                    </button>
+                    <span id="ia-acta-status" style="font-size:0.85rem;color:#64748b;"></span>
                 </div>
             </div>
         </fieldset>

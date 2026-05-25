@@ -32,17 +32,6 @@
         <fieldset>
             <legend>Datos del Evento</legend>
 
-            <!-- Enriquecer asunto y descripción con IA -->
-            <div style="margin-bottom:12px;padding:10px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;">
-                <div style="display:flex;align-items:center;gap:12px;">
-                    <button type="button" onclick="enriquecerConvEstudiantesIA()"
-                        style="padding:6px 16px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.85em;">
-                        ✨ Enriquecer con IA
-                    </button>
-                    <span id="ia-conv-est-status" style="font-size:0.8rem;color:#64748b;"></span>
-                </div>
-            </div>
-
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div style="grid-column:1/-1;">
                     <label>Asunto:</label>
@@ -64,6 +53,20 @@
                     <label>Descripción del motivo:</label>
                     <textarea name="descripcion_convocatoria" rows="3" required></textarea>
                 </div>
+            </div>
+
+            <!-- Mejorar asunto y descripción con IA -->
+            <div style="margin-top:10px;padding:10px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button type="button" onclick="enriquecerConvEstudiantesIA()"
+                        style="padding:6px 16px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.85em;">
+                        ✨ Mejorar con IA
+                    </button>
+                    <span id="ia-conv-est-status" style="font-size:0.8rem;color:#64748b;"></span>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
                 <div>
                     <label>Fecha de Reunión:</label>
                     <input type="date" name="fecha_reunion" required>

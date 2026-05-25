@@ -1,0 +1,157 @@
+<div class="container" style="max-width:860px;">
+    <h1>📚 Reporte Perusall</h1>
+
+    <form id="form_perusall" enctype="multipart/form-data">
+        <fieldset>
+            <legend>Archivos de Exportación</legend>
+            <p style="color:#475569;font-size:0.9em;margin:0 0 14px;">
+                Sube los CSVs exportados desde Perusall. El sistema detecta automáticamente el tipo por nombre:
+                <code>all-grades*</code>, <code>*gradebook*</code>, <code>comments*</code>, y <code>asistencia*</code>.
+            </p>
+            <label>Archivos CSV de Perusall:</label>
+            <input type="file" name="archivos_perusall" id="archivos_perusall"
+                   accept=".csv" multiple required
+                   onchange="listarArchivosPerusall(this)">
+            <div id="lista-archivos-perusall"
+                 style="margin-top:8px;padding:10px;border:1px dashed #cbd5e1;border-radius:7px;min-height:40px;">
+                <em style="color:#94a3b8;font-size:0.85em;">Ningún archivo seleccionado.</em>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Opciones</legend>
+            <div style="max-width:240px;">
+                <label>Puntuación máxima de la tarea (opcional):</label>
+                <input type="number" name="max_score" id="max_score"
+                       min="0" step="0.1" placeholder="Ej: 3 (para normalizar a 10)">
+                <small class="help-text">Si lo dejas vacío, el sistema intenta calcularlo desde los datos.</small>
+            </div>
+        </fieldset>
+
+        <button type="submit" class="submit-btn" id="btn-procesar-perusall">
+            📊 Generar Reporte
+        </button>
+    </form>
+
+    <!-- Resultados -->
+    <div id="perusall-resultados" style="display:none;margin-top:28px;">
+
+        <div id="perusall-summary"
+             style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin-bottom:20px;">
+        </div>
+
+        <div id="perusall-descargas" style="margin-bottom:20px;"></div>
+
+        <div id="perusall-preview" style="overflow-x:auto;"></div>
+    </div>
+
+    <div id="perusall-error"
+         style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px;margin-top:20px;color:#991b1b;">
+    </div>
+</div>
+
+<style>
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82em;
+}
+.preview-table th {
+    background: #1e293b;
+    color: #f1f5f9;
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 500;
+}
+.preview-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+}
+.preview-table tr:hover td { background: #f8fafc; }
+</style>
+
+<script>
+function listarArchivosPerusall(input) {
+    const contenedor = document.getElementById('lista-archivos-perusall');
+    if (!input.files.length) {
+        contenedor.innerHTML = '<em style="color:#94a3b8;font-size:0.85em;">Ningún archivo seleccionado.</em>';
+        return;
+    }
+    const items = Array.from(input.files).map(f => {
+        const kb = (f.size / 1024).toFixed(1);
+        let tipo = '📄';
+        if (f.name.includes('grade')) tipo = '📊';
+        else if (f.name.includes('comment')) tipo = '💬';
+        else if (f.name.includes('asistencia') || f.name.includes('attendance')) tipo = '📋';
+        return `<div style="padding:4px 0;font-size:0.87em;color:#334155;">${tipo} <strong>${f.name}</strong> <span style="color:#94a3b8;">(${kb} KB)</span></div>`;
+    });
+    contenedor.innerHTML = items.join('');
+}
+
+document.getElementById('form_perusall').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-procesar-perusall');
+    const errEl = document.getElementById('perusall-error');
+    const resEl = document.getElementById('perusall-resultados');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Procesando...';
+    errEl.style.display = 'none';
+    resEl.style.display = 'none';
+
+    try {
+        const fd = new FormData(this);
+        const resp = await fetch('/perusall/procesar', { method: 'POST', body: fd });
+        const data = await resp.json();
+
+        if (!resp.ok) {
+            errEl.innerHTML = `<strong>❌ Error:</strong> ${data.error || 'Error desconocido'}`;
+            errEl.style.display = 'block';
+            return;
+        }
+
+        // Resumen
+        const summaryEl = document.getElementById('perusall-summary');
+        if (data.summary) {
+            summaryEl.innerHTML = '<h3 style="margin:0 0 10px;color:#1e293b;">📈 Resumen</h3>'
+                + data.summary.replace(/^# .+\n/m,'').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+        } else {
+            summaryEl.innerHTML = '<p style="color:#64748b;font-size:0.9em;">Sin resumen disponible.</p>';
+        }
+
+        // Descargas
+        const descEl = document.getElementById('perusall-descargas');
+        if (data.archivos && data.archivos.length) {
+            const links = data.archivos.map(fn => {
+                const icon = fn.endsWith('.csv') ? '📊' : fn.endsWith('.pdf') ? '📄' : '📁';
+                return `<a href="/perusall/descargar/${data.timestamp}/${fn}"
+                          style="display:inline-flex;align-items:center;gap:6px;background:#1e293b;color:#f1f5f9;
+                                 padding:8px 16px;border-radius:8px;text-decoration:none;font-size:0.88em;
+                                 font-weight:500;margin:4px 4px 4px 0;transition:opacity 0.2s;"
+                          onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+                          ${icon} ${fn}
+                        </a>`;
+            });
+            descEl.innerHTML = '<h3 style="margin:0 0 10px;color:#1e293b;">⬇️ Archivos generados</h3>' + links.join('');
+        }
+
+        // Preview tabla
+        const prevEl = document.getElementById('perusall-preview');
+        if (data.preview_html) {
+            prevEl.innerHTML = '<h3 style="margin:0 0 10px;color:#1e293b;">👁️ Vista previa (primeras 50 filas)</h3>'
+                + data.preview_html;
+        }
+
+        resEl.style.display = 'block';
+        resEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+        errEl.innerHTML = `<strong>❌ Error de red:</strong> ${err.message}`;
+        errEl.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '📊 Generar Reporte';
+    }
+});
+</script>

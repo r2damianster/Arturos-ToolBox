@@ -1,11 +1,26 @@
 /* ===========================
    CONFIGURACIÓN GENERAL
 =========================== */
+:root {
+    --accent: #6366f1;
+    --accent-dark: #4f46e5;
+    --success: #16a34a;
+    --surface: #ffffff;
+    --bg: #f1f5f9;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+}
+
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f4f7f6;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg);
     display: flex;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
 }
 
 /* ===========================
@@ -204,10 +219,10 @@ body {
 .container {
     max-width: 860px;
     margin: auto;
-    background: #ffffff;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    background: var(--surface);
+    padding: 32px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
 }
 
 .hidden {
@@ -215,77 +230,141 @@ body {
 }
 
 h1 {
-    color: #1e293b;
+    color: var(--text);
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: 28px;
+    font-size: 1.55em;
+    font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
 /* ===========================
    FORMULARIO
 =========================== */
 fieldset {
-    border: 1px solid #ddd;
-    padding: 16px;
-    margin-bottom: 16px;
-    border-radius: 6px;
+    border: 1px solid var(--border);
+    padding: 20px 20px 8px;
+    margin-bottom: 18px;
+    border-radius: var(--radius);
+    background: #fafbfc;
+    position: relative;
+}
+
+fieldset::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    background: linear-gradient(180deg, var(--accent), #818cf8);
+    border-radius: 0 3px 3px 0;
 }
 
 legend {
-    font-weight: bold;
-    padding: 0 6px;
-    color: #334155;
+    font-weight: 600;
+    padding: 0 8px;
+    color: var(--accent-dark);
+    font-size: 0.88em;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
 }
 
 label {
     display: block;
     margin-bottom: 5px;
-    font-size: 0.9em;
-    font-weight: 600;
+    font-size: 0.875em;
+    font-weight: 500;
+    color: #334155;
 }
 
 input[type="text"],
 input[type="number"],
-input[type="file"],
+input[type="date"],
+input[type="time"],
+input[type="email"],
 select,
 textarea {
     width: 100%;
-    padding: 10px;
+    padding: 9px 12px;
     margin-bottom: 12px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
+    border-radius: 7px;
+    border: 1px solid var(--border);
     font-size: 0.9em;
+    font-family: inherit;
     box-sizing: border-box;
+    background: #fff;
+    color: var(--text);
+    transition: border-color 0.18s, box-shadow 0.18s;
 }
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="email"]:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+}
+
+input[type="file"] {
+    width: 100%;
+    padding: 9px 12px;
+    margin-bottom: 12px;
+    border-radius: 7px;
+    border: 1.5px dashed var(--border);
+    font-size: 0.9em;
+    font-family: inherit;
+    box-sizing: border-box;
+    background: #f8fafc;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color 0.18s;
+}
+
+input[type="file"]:hover { border-color: var(--accent); }
 
 .textarea-flexible {
     min-height: 180px;
     resize: vertical;
-    line-height: 1.5;
-    font-family: monospace;
+    line-height: 1.6;
+    font-family: inherit;
 }
 
 .help-text {
-    color: #666;
+    color: var(--muted);
     display: block;
     margin-top: -8px;
     margin-bottom: 14px;
-    font-size: 0.83em;
+    font-size: 0.82em;
 }
 
 button.submit-btn {
-    background-color: #2563eb;
+    background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
     color: white;
-    padding: 14px;
+    padding: 13px 24px;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     width: 100%;
     font-size: 1em;
-    font-weight: bold;
-    transition: background 0.2s;
-    margin-top: 4px;
+    font-weight: 600;
+    font-family: inherit;
+    letter-spacing: 0.01em;
+    transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    margin-top: 6px;
+    box-shadow: 0 2px 8px rgba(99,102,241,0.25);
 }
 
 button.submit-btn:hover {
-    background-color: #1d4ed8;
+    opacity: 0.92;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+}
+
+button.submit-btn:active {
+    transform: translateY(0);
 }

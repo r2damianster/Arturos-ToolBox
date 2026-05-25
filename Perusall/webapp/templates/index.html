@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Upload Persusall files</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 2rem; }
+      .box { border: 1px solid #ddd; padding: 1rem; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <h1>Subir archivos Persusall / Gradebook / Asistencia</h1>
+    <div class="box">
+      <p>Sube los archivos exportados desde Persusall y el gradebook. Nombres sugeridos:</p>
+      <ul>
+        <li><code>all-grades-*.csv</code></li>
+        <li><code>comments-*.csv</code></li>
+        <li><code>asistencia_*.csv</code></li>
+        <li><code>medicina-*-gradebook.csv</code></li>
+      </ul>
+      {% if error %}
+        <p style="color:crimson">{{ error }}</p>
+      {% endif %}
+      <form method="post" enctype="multipart/form-data">
+        <input type="file" name="files" multiple accept=".csv" />
+        <p/>
+        <button type="submit">Procesar y mostrar reporte (no descargar)</button>
+      </form>
+    </div>
+
+    {% if files %}
+      <h2>Resultados ({{ files|length }} archivos)</h2>
+      <div class="box">
+        <p>Archivos generados:</p>
+        <ul>
+          {% for f in files %}
+            <li>{{ f }} — <a href="/download/{{ timestamp }}/{{ f }}">Descargar</a></li>
+          {% endfor %}
+        </ul>
+        <p>
+          <a href="/generate_pdf/{{ timestamp }}">Generar y descargar PDF (opcional)</a>
+        </p>
+        <p>
+          <a href="/generate_zip/{{ timestamp }}">Generar ZIP con originales + outputs (opcional)</a>
+        </p>
+      </div>
+
+      <h3>Vista previa de `report.csv` (primeras 100 filas)</h3>
+      <div class="box">
+        {{ preview_html | safe }}
+      </div>
+    {% endif %}
+  </body>
+</html>
