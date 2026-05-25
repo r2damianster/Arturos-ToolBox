@@ -14,6 +14,7 @@ def ia_enriquecer():
     data = request.get_json(silent=True) or {}
     contexto = data.get('contexto', '').strip()
     texto = data.get('texto', '').strip()
+    tono = data.get('tono', '').strip()
     user_id = data.get('user_id', request.remote_addr or 'global')
 
     if not contexto or not texto:
@@ -32,7 +33,7 @@ def ia_enriquecer():
         }), 429
 
     # Enriquecer
-    resultado, error = enriquecer_texto(contexto, texto)
+    resultado, error = enriquecer_texto(contexto, texto, tono=tono or None)
     if error:
         return jsonify({"error": error}), 500
 

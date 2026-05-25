@@ -53,7 +53,7 @@ class OficioLogic:
             return fecha_str
 
     def reemplazar_en_documento(self, doc, reemplazos):
-        """Reemplaza etiquetas {{LLAVE}} ignorando mayúsculas/minúsculas en todo el documento."""
+        """Reemplaza etiquetas {{LLAVE}} ignorando mayúsculas/minúsculas, preservando formato OOXML."""
         limpios = {}
         for k, v in reemplazos.items():
             key_name = str(k).replace('{', '').replace('}', '').strip()
@@ -68,18 +68,31 @@ class OficioLogic:
                     nuevo_texto = nuevo_texto.replace("{{" + match + "}}", limpios[tag_interna])
             return nuevo_texto
 
-        # Párrafos
-        for p in doc.paragraphs:
+        def reemplazar_parrafo(p):
+            if '{{' not in p.text:
+                return
+            # Intento run-level: preserva formato por run
+            for run in p.runs:
+                if '{{' in run.text:
+                    run.text = realizar_cambio(run.text)
+            # Si el placeholder estaba partido en varios runs, fallback conservando formato del primer run
             if '{{' in p.text:
-                p.text = realizar_cambio(p.text)
+                nuevo = realizar_cambio(p.text)
+                if p.runs:
+                    p.runs[0].text = nuevo
+                    for run in p.runs[1:]:
+                        run._element.getparent().remove(run._element)
+                else:
+                    p.add_run(nuevo)
 
-        # Tablas
+        for p in doc.paragraphs:
+            reemplazar_parrafo(p)
+
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for p in cell.paragraphs:
-                        if '{{' in p.text:
-                            p.text = realizar_cambio(p.text)
+                        reemplazar_parrafo(p)
 
     # ── Generación del oficio ──────────────────────────────────────
     def generar_docx(self, datos):

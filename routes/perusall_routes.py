@@ -1,13 +1,8 @@
-from flask import Blueprint, render_template, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, redirect
 from logic.perusall_logic import procesar_archivos_perusall, obtener_archivo_resultado
 import traceback
 
 perusall_bp = Blueprint('perusall', __name__, url_prefix='/perusall')
-
-
-@perusall_bp.route('/', methods=['GET'])
-def index():
-    return render_template('index.html')
 
 
 @perusall_bp.route('/procesar', methods=['POST'])

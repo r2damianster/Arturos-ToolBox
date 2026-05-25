@@ -2,6 +2,8 @@ import os
 import io
 from datetime import datetime
 from docxtpl import DocxTemplate, RichText
+from docx import Document as DocxDocument
+from docx.shared import Inches
 from groq import Groq
 
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
@@ -144,4 +146,30 @@ class ActaTecnicaLogic:
         buffer = io.BytesIO()
         tpl.save(buffer)
         buffer.seek(0)
+
+        if fotos:
+            buffer = self._agregar_fotos(buffer, fotos)
+
         return buffer
+
+    def _agregar_fotos(self, buffer, fotos):
+        """Agrega las fotos de evidencia al final del documento."""
+        buffer.seek(0)
+        doc = DocxDocument(buffer)
+        doc.add_page_break()
+        titulo = doc.add_paragraph()
+        run_titulo = titulo.add_run('EVIDENCIAS FOTOGRÁFICAS')
+        run_titulo.bold = True
+
+        for i, foto in enumerate(fotos, 1):
+            try:
+                foto.seek(0)
+                doc.add_picture(foto, width=Inches(5.5))
+                doc.add_paragraph(f'Figura {i}')
+            except Exception:
+                pass
+
+        buf2 = io.BytesIO()
+        doc.save(buf2)
+        buf2.seek(0)
+        return buf2

@@ -407,18 +407,24 @@ def analizar_pretest_posttest(pretest: list, posttest: list) -> dict:
     diferencias_normales = bool(sw_p >= 0.05)
 
     # ── Wilcoxon Signed-Rank ─────────────────────────────────────────────
-    stat_w, p_wilcoxon = stats.wilcoxon(pre, post, alternative="two-sided")
+    ties  = int(np.sum(diff == 0))
+    n_eff = n - ties
 
-    nonzero_diff = diff[diff != 0]
-    ranks_abs    = stats.rankdata(np.abs(nonzero_diff))
-    pos_ranks    = int(np.sum(ranks_abs[nonzero_diff > 0]))
-    neg_ranks    = int(np.sum(ranks_abs[nonzero_diff < 0]))
-    ties         = int(np.sum(diff == 0))
-    n_eff        = n - ties
-
-    z_approx = float((stat_w - (n_eff * (n_eff + 1)) / 4) /
-                     math.sqrt((n_eff * (n_eff + 1) * (2 * n_eff + 1)) / 24))
-    r_effect = abs(z_approx) / math.sqrt(n_eff) if n_eff > 0 else 0.0
+    if n_eff == 0:
+        # Todas las diferencias son cero — Wilcoxon no aplica
+        stat_w, p_wilcoxon = 0.0, 1.0
+        pos_ranks = neg_ranks = 0
+        z_approx = 0.0
+        r_effect = 0.0
+    else:
+        stat_w, p_wilcoxon = stats.wilcoxon(pre, post, alternative="two-sided")
+        nonzero_diff = diff[diff != 0]
+        ranks_abs    = stats.rankdata(np.abs(nonzero_diff))
+        pos_ranks    = int(np.sum(ranks_abs[nonzero_diff > 0]))
+        neg_ranks    = int(np.sum(ranks_abs[nonzero_diff < 0]))
+        denom_w = math.sqrt((n_eff * (n_eff + 1) * (2 * n_eff + 1)) / 24)
+        z_approx = float((stat_w - (n_eff * (n_eff + 1)) / 4) / denom_w) if denom_w else 0.0
+        r_effect = abs(z_approx) / math.sqrt(n_eff)
 
     # Interpretación tamaño del efecto (r)
     if r_effect < 0.1:

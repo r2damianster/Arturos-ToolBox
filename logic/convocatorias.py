@@ -35,7 +35,7 @@ class ConvocatoriaLogic:
             return fecha_str
 
     def reemplazar_en_documento(self, doc, reemplazos):
-        """Reemplaza etiquetas {{LLAVE}} ignorando mayúsculas/minúsculas."""
+        """Reemplaza etiquetas {{LLAVE}} ignorando mayúsculas/minúsculas, preservando formato OOXML."""
         limpios = {}
         for k, v in reemplazos.items():
             key_name = str(k).replace('{', '').replace('}', '').strip()
@@ -44,25 +44,38 @@ class ConvocatoriaLogic:
 
         def realizar_cambio(texto):
             nuevo_texto = texto
-            # Busca cualquier cosa dentro de {{ }}
             for match in re.findall(r'\{\{(.*?)\}\}', nuevo_texto):
                 tag_interna = match.strip().upper()
                 if tag_interna in limpios:
                     nuevo_texto = nuevo_texto.replace("{{" + match + "}}", limpios[tag_interna])
             return nuevo_texto
 
-        # Procesar párrafos
-        for p in doc.paragraphs:
+        def reemplazar_parrafo(p):
+            if '{{' not in p.text:
+                return
+            # Intento run-level: preserva formato por run
+            for run in p.runs:
+                if '{{' in run.text:
+                    run.text = realizar_cambio(run.text)
+            # Si el placeholder estaba partido en varios runs, fallback al nivel de párrafo
+            # conservando el formato del primer run
             if '{{' in p.text:
-                p.text = realizar_cambio(p.text)
-        
-        # Procesar tablas
+                nuevo = realizar_cambio(p.text)
+                if p.runs:
+                    p.runs[0].text = nuevo
+                    for run in p.runs[1:]:
+                        run._element.getparent().remove(run._element)
+                else:
+                    p.add_run(nuevo)
+
+        for p in doc.paragraphs:
+            reemplazar_parrafo(p)
+
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for p in cell.paragraphs:
-                        if '{{' in p.text:
-                            p.text = realizar_cambio(p.text)
+                        reemplazar_parrafo(p)
 
     def insertar_estudiantes_en_todas_las_tablas(self, doc, lista_estudiantes):
         """Llena todas las tablas que contengan el marcador {{nombre}}."""

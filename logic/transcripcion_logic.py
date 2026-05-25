@@ -53,7 +53,13 @@ def submit_transcripcion(audio_file, speaker_names: dict, titulo: str) -> str:
         ctx_path = os.path.join(tempfile.gettempdir(), f"txn_{transcript_id}.json")
         data = {
             "text": text,
-            "segments": [{"start": s.get("start", 0), "text": s.get("text", "")} for s in segments],
+            "segments": [
+                {
+                    "start": s.get("start", 0) if isinstance(s, dict) else getattr(s, "start", 0),
+                    "text": s.get("text", "") if isinstance(s, dict) else getattr(s, "text", ""),
+                }
+                for s in segments
+            ],
             "language": transcript.language or "es",
             "duration": transcript.duration or 0,
             "speaker_names": speaker_names,

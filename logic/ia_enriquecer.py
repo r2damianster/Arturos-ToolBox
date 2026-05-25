@@ -146,31 +146,48 @@ PROMPTS = {
 }
 
 
-def enriquecer_texto(contexto, texto_usuario):
+_TONO_INSTRUCCIONES = {
+    "formal":   "TONO: Usa lenguaje institucional elevado. Incluye fórmulas de cortesía académica. Mantén distancia protocolar.",
+    "cordial":  "TONO: Usa lenguaje respetuoso pero cálido. Incluye expresiones de colaboración y trabajo en equipo.",
+    "directo":  "TONO: Ve al grano. Usa oraciones cortas. Elimina preámbulos innecesarios. Mantén formalidad básica.",
+    "urgente":  "TONO: Destaca la prioridad y los plazos. Transmite sentido de inmediatez y urgencia.",
+}
+
+_CONTEXTOS_CON_TONO = {"oficio_cuerpo", "oficio_cuerpo_generar"}
+
+
+def enriquecer_texto(contexto, texto_usuario, tono=None):
     """
     Envía texto a Groq (Llama) para enriquecerlo según el contexto.
-    
+
     Args:
         contexto: clave del prompt (ej: 'acta_aspectos', 'convocatoria_asunto')
         texto_usuario: texto escrito por el usuario
-    
+        tono: opcional — 'formal' | 'cordial' | 'directo' | 'urgente' (solo para contextos oficio_*)
+
     Returns:
-        str: texto enriquecido
+        (str, None) o (None, error_str)
     """
     if not GROQ_API_KEY:
         return None, "IA no configurada (GROQ_API_KEY no definida)"
-    
+
     if not texto_usuario or len(texto_usuario.strip()) < 3:
         return None, "El texto es muy corto para enriquecer."
-    
+
     config = PROMPTS.get(contexto)
     if not config:
         return None, f"Contexto no reconocido: {contexto}"
-    
+
     client = Groq(api_key=GROQ_API_KEY)
-    
+
+    instruction = config['instruction']
+    if tono and contexto in _CONTEXTOS_CON_TONO:
+        extra = _TONO_INSTRUCCIONES.get(tono, '')
+        if extra:
+            instruction = instruction + f"\n{extra}"
+
     prompt = (
-        f"{config['instruction']}\n\n"
+        f"{instruction}\n\n"
         f"TEXTO DEL USUARIO:\n{texto_usuario}"
     )
     
