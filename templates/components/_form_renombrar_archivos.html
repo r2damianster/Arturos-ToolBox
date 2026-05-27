@@ -1,0 +1,92 @@
+<div class="container">
+    <h1>🔢 Renombrar Archivos</h1>
+    <form action="/util/renombrar-archivos" method="post" enctype="multipart/form-data"
+          onsubmit="return validarRenombrar()">
+        <fieldset>
+            <legend>Archivos</legend>
+            <label>Selecciona los archivos a renombrar (cualquier tipo):</label>
+            <input type="file" name="archivos" multiple required
+                   onchange="listarArchivos(this, 'lista-renombrar', '📄')">
+            <div id="lista-renombrar"></div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Opciones de renombrado</legend>
+
+            <label>Tipo de nombre:</label>
+            <div style="display:flex;gap:20px;margin-bottom:12px;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                    <input type="radio" name="modo" value="numeros" checked
+                           onchange="toggleModo(this.value)">
+                    Números &nbsp;<span style="color:#64748b;font-size:0.88em;">(1, 2, 3…)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                    <input type="radio" name="modo" value="letras"
+                           onchange="toggleModo(this.value)">
+                    Letras &nbsp;<span style="color:#64748b;font-size:0.88em;">(a, b, c…)</span>
+                </label>
+            </div>
+
+            <div id="opciones-numeros">
+                <label>Empezar desde:</label>
+                <input type="number" name="inicio" id="inicio-num" min="0" value="1"
+                       style="width:80px;">
+
+                <label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;">
+                    <input type="checkbox" name="ceros" id="chk-ceros">
+                    Rellenar con ceros &nbsp;<span style="color:#64748b;font-size:0.88em;">(01, 02… en lugar de 1, 2…)</span>
+                </label>
+            </div>
+
+            <div id="opciones-letras" style="display:none;">
+                <label>Empezar desde:</label>
+                <input type="text" name="inicio_letra" id="inicio-letra"
+                       maxlength="1" value="a"
+                       style="width:50px;text-transform:lowercase;"
+                       oninput="this.value=this.value.toLowerCase().replace(/[^a-z]/g,'')">
+                <span class="help-text">Solo letras a–z. Máximo 26 archivos en modo letras.</span>
+            </div>
+
+            <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;">
+                <input type="checkbox" name="ordenar" id="chk-ordenar" checked>
+                Ordenar por nombre original (A→Z) antes de numerar
+            </label>
+
+            <span class="help-text" style="margin-top:8px;">
+                La extensión original de cada archivo se conserva.
+                Descargás un ZIP con todos los archivos renombrados.
+            </span>
+        </fieldset>
+
+        <button type="submit" class="submit-btn">⬇️ Descargar ZIP</button>
+    </form>
+</div>
+
+<script>
+function toggleModo(modo) {
+    document.getElementById('opciones-numeros').style.display = modo === 'numeros' ? '' : 'none';
+    document.getElementById('opciones-letras').style.display  = modo === 'letras'  ? '' : 'none';
+    // swap the active input name so only one "inicio" arrives at the server
+    if (modo === 'letras') {
+        document.getElementById('inicio-num').removeAttribute('name');
+        document.getElementById('inicio-letra').name = 'inicio';
+    } else {
+        document.getElementById('inicio-letra').removeAttribute('name');
+        document.getElementById('inicio-num').name = 'inicio';
+    }
+}
+
+function validarRenombrar() {
+    const modo = document.querySelector('input[name="modo"]:checked').value;
+    if (modo === 'letras') {
+        const files = document.querySelector('input[name="archivos"]').files;
+        const letra = document.getElementById('inicio-letra').value || 'a';
+        const resto = 26 - (letra.charCodeAt(0) - 97);
+        if (files.length > resto) {
+            alert('Con la letra "' + letra + '" solo hay ' + resto + ' letras disponibles (' + files.length + ' archivos seleccionados).');
+            return false;
+        }
+    }
+    return true;
+}
+</script>

@@ -510,3 +510,38 @@ def analizar_pretest_posttest(pretest: list, posttest: list) -> dict:
             "nivel_confianza":  "95%",
         },
     }
+
+
+# ─────────────────────────────────────────────
+# 12. RENOMBRAR ARCHIVOS (números o letras)
+# ─────────────────────────────────────────────
+
+def renombrar_archivos(archivos, modo: str = "numeros", inicio: str = "1",
+                       ceros: bool = False, ordenar: bool = True) -> bytes:
+    items = list(archivos)
+
+    if ordenar:
+        items.sort(key=lambda f: f.filename.lower())
+
+    total = len(items)
+
+    if modo == "letras":
+        start_ord = ord(inicio.lower()[0]) if inicio else ord('a')
+        nombres = [chr(start_ord + i) for i in range(total)]
+    else:
+        start_n = int(inicio) if inicio.isdigit() else 1
+        if ceros:
+            ancho = len(str(start_n + total - 1))
+            nombres = [str(start_n + i).zfill(ancho) for i in range(total)]
+        else:
+            nombres = [str(start_n + i) for i in range(total)]
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for i, archivo in enumerate(items):
+            ext = os.path.splitext(archivo.filename)[1]
+            nuevo_nombre = nombres[i] + ext
+            zf.writestr(nuevo_nombre, archivo.read())
+
+    buf.seek(0)
+    return buf.read()

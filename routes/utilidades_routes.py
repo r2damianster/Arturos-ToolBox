@@ -15,6 +15,7 @@ from logic.utilidades import (
     convertir_a_pdf,
     reducir_imagenes,
     analizar_pretest_posttest,
+    renombrar_archivos,
 )
 
 utilidades_bp = Blueprint("utilidades", __name__)
@@ -180,3 +181,22 @@ def util_pretest():
         return jsonify({"error": "Solo se aceptan números separados por comas."}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@utilidades_bp.route("/util/renombrar-archivos", methods=["POST"])
+def util_renombrar_archivos():
+    archivos = request.files.getlist("archivos")
+    if not archivos or archivos[0].filename == "":
+        return "No se recibieron archivos.", 400
+    modo    = request.form.get("modo", "numeros")
+    inicio  = request.form.get("inicio", "1").strip() or "1"
+    ceros   = request.form.get("ceros") == "on"
+    ordenar = request.form.get("ordenar", "on") == "on"
+    try:
+        zip_bytes = renombrar_archivos(archivos, modo=modo, inicio=inicio,
+                                       ceros=ceros, ordenar=ordenar)
+        return send_file(io.BytesIO(zip_bytes), as_attachment=True,
+                         download_name="archivos_renombrados.zip",
+                         mimetype="application/zip")
+    except Exception as e:
+        return f"Error: {e}", 500
