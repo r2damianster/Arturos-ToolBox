@@ -357,7 +357,8 @@ def convertir_a_pdf(archivos: list) -> bytes:
             pdf.add_page()
             pdf.set_font("Arial", size=12)
             for linea in contenido.splitlines():
-                pdf.cell(0, 8, txt=linea[:200], ln=True)
+                txt = linea[:200].encode("latin-1", errors="replace").decode("latin-1")
+                pdf.cell(0, 8, txt=txt, ln=True)
 
             nombre_pdf = f"PDF_{os.path.splitext(f.filename)[0]}.pdf"
             pdf_output = pdf.output(dest="S").encode("latin-1", errors="ignore")
