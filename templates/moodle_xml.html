@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}Generador Moodle XML{% endblock %}
+
+{% block content %}
+<style>
+  .moodle-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.2rem;
+    height: calc(100vh - 2.4rem);
+    box-sizing: border-box;
+  }
+
+  .moodle-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .moodle-header h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0;
+    color: #1e293b;
+  }
+
+  .moodle-header input[type="text"] {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    width: 200px;
+  }
+
+  .moodle-header .btn-gen {
+    background: #0f766e;
+    color: #fff;
+    border: none;
+    padding: 0.45rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .moodle-header .btn-gen:hover { background: #0d6a63; }
+
+  .moodle-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .panel-title {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  #gift-editor {
+    flex: 1;
+    resize: none;
+    border: none;
+    outline: none;
+    padding: 1rem;
+    font-family: 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #1e293b;
+    background: #fafafa;
+    tab-size: 2;
+  }
+
+  #preview-pane {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.2rem;
+    background: #f0f4f8;
+  }
+
+  /* ── Moodle-style question cards ── */
+  .mq-card {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+
+  .mq-header {
+    background: #e8f4e8;
+    border-bottom: 1px solid #c3dfc3;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #2d6a2d;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .mq-badge {
+    background: #2d6a2d;
+    color: #fff;
+    border-radius: 4px;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.65rem;
+  }
+
+  .mq-body {
+    padding: 0.8rem 1rem;
+  }
+
+  .mq-qtext {
+    font-size: 0.95rem;
+    color: #1e293b;
+    margin-bottom: 0.7rem;
+    line-height: 1.5;
+  }
+
+  .mq-choices {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .mq-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+    color: #374151;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid transparent;
+  }
+
+  .mq-choice.correct {
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #166534;
+    font-weight: 600;
+  }
+
+  .mq-choice input[type="radio"],
+  .mq-choice input[type="checkbox"] {
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+    accent-color: #0f766e;
+  }
+
+  .mq-label { font-weight: 600; color: #6b7280; min-width: 1.2rem; }
+
+  .mq-tf { display: flex; gap: 1rem; }
+  .mq-tf label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.88rem;
+    cursor: pointer;
+  }
+
+  .mq-input {
+    width: 100%;
+    max-width: 320px;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 0.88rem;
+    color: #374151;
+    background: #f9fafb;
+  }
+
+  .mq-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.5rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 0.88rem;
+    color: #374151;
+    resize: vertical;
+    background: #f9fafb;
+  }
+
+  .preview-empty {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    text-align: center;
+    margin-top: 3rem;
+  }
+
+  .preview-count {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 0.8rem;
+    text-align: right;
+  }
+
+  .status-bar {
+    font-size: 0.8rem;
+    color: #64748b;
+    padding: 0.3rem 0;
+  }
+
+  .status-bar span.ok { color: #0f766e; font-weight: 600; }
+  .status-bar span.err { color: #dc2626; font-weight: 600; }
+
+  @media (max-width: 768px) {
+    .moodle-panels { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="moodle-wrap">
+  <div class="moodle-header">
+    <h1>📋 Generador Moodle XML</h1>
+    <input type="text" id="cat-input" placeholder="Categoría (opcional)" />
+    <button class="btn-gen" onclick="descargarXML()">⬇ Descargar XML</button>
+    <span class="status-bar" id="status-bar"></span>
+  </div>
+
+  <div class="moodle-panels">
+    <div class="panel">
+      <div class="panel-title">✏️ Editor GIFT</div>
+      <textarea id="gift-editor" spellcheck="false" placeholder="// Escribe preguntas en formato GIFT
+// Ejemplo:
+::P1:: ¿Cuál es la capital de Ecuador? {
+    ~ Guayaquil
+    ~ Cuenca
+    = Quito
+    ~ Loja
+}
+
+::P2:: La Tierra es el tercer planeta del Sistema Solar. {TRUE}
+
+::P3:: ¿Cómo se llama el proceso por el que las plantas producen glucosa? {
+    fotosíntesis
+    fotosintesis
+}"></textarea>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">👁 Vista previa — estilo Moodle</div>
+      <div id="preview-pane">
+        <p class="preview-empty">Escribe preguntas en el editor para ver la vista previa aquí.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const LABELS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+const TYPE_LABELS = {
+  multichoice: 'Opción múltiple',
+  truefalse: 'Verdadero / Falso',
+  shortanswer: 'Respuesta corta',
+  numerical: 'Numérica',
+  essay: 'Ensayo',
+};
+
+// ── GIFT parser (client-side for live preview) ──────────────────────────────
+
+function parseGIFT(source) {
+  const lines = source.split('\n')
+    .filter(l => !l.trimStart().startsWith('//'));
+  const text = lines.join('\n');
+
+  const pattern = /(?:::([^:]+)::)?\s*([\s\S]*?)\s*\{([\s\S]*?)\}/g;
+  const questions = [];
+  let m;
+
+  while ((m = pattern.exec(text)) !== null) {
+    const name = (m[1] || '').trim();
+    const qtext = m[2].trim();
+    const body = m[3].trim();
+
+    if (!qtext && !name) continue;
+
+    const q = classifyQ(name, qtext, body);
+    if (q) questions.push(q);
+  }
+  return questions;
+}
+
+function classifyQ(name, qtext, body) {
+  const bs = body.trim();
+
+  // True/False
+  if (/^(TRUE|FALSE|VERDADERO|FALSO|true|false|verdadero|falso)$/i.test(bs)) {
+    const correct = /^(TRUE|VERDADERO)$/i.test(bs);
+    return { type: 'truefalse', name: name || qtext.slice(0, 50), text: qtext, correct };
+  }
+
+  // Numerical
+  if (bs.startsWith('#')) {
+    const nm = bs.match(/^#\s*([\d.\-]+)(?::([\d.]+))?/);
+    if (nm) return { type: 'numerical', name: name || qtext.slice(0, 50), text: qtext, answer: nm[1], tolerance: nm[2] || '0' };
+  }
+
+  // Essay
+  if (!bs) return { type: 'essay', name: name || qtext.slice(0, 50), text: qtext };
+
+  // Multiple choice
+  const rawLines = bs.split('\n').map(l => l.trim()).filter(Boolean);
+  const hasChoices = rawLines.some(l => l.startsWith('~') || l.startsWith('='));
+
+  if (hasChoices) {
+    const choices = rawLines.map(l => {
+      if (l.startsWith('=')) return { text: l.slice(1).trim(), correct: true };
+      if (l.startsWith('~')) return { text: l.slice(1).trim(), correct: false };
+      return null;
+    }).filter(Boolean);
+    return { type: 'multichoice', name: name || qtext.slice(0, 50), text: qtext, choices };
+  }
+
+  // Short answer
+  return { type: 'shortanswer', name: name || qtext.slice(0, 50), text: qtext, answers: rawLines };
+}
+
+// ── Render preview ──────────────────────────────────────────────────────────
+
+function renderPreview(questions) {
+  const pane = document.getElementById('preview-pane');
+  if (!questions.length) {
+    pane.innerHTML = '<p class="preview-empty">Escribe preguntas en el editor para ver la vista previa aquí.</p>';
+    return;
+  }
+
+  let html = `<div class="preview-count">${questions.length} pregunta${questions.length !== 1 ? 's' : ''} detectada${questions.length !== 1 ? 's' : ''}</div>`;
+
+  questions.forEach((q, i) => {
+    html += `<div class="mq-card">
+      <div class="mq-header">
+        <span>Pregunta ${i + 1} — ${escH(q.name)}</span>
+        <span class="mq-badge">${TYPE_LABELS[q.type] || q.type}</span>
+      </div>
+      <div class="mq-body">
+        <div class="mq-qtext">${escH(q.text)}</div>
+        ${renderAnswers(q)}
+      </div>
+    </div>`;
+  });
+
+  pane.innerHTML = html;
+}
+
+function renderAnswers(q) {
+  if (q.type === 'multichoice') {
+    let s = '<ul class="mq-choices">';
+    q.choices.forEach((c, i) => {
+      s += `<li class="mq-choice${c.correct ? ' correct' : ''}">
+        <input type="radio" disabled ${c.correct ? 'checked' : ''}>
+        <span class="mq-label">${LABELS[i] || i + 1})</span>
+        <span>${escH(c.text)}</span>
+      </li>`;
+    });
+    s += '</ul>';
+    return s;
+  }
+  if (q.type === 'truefalse') {
+    return `<div class="mq-tf">
+      <label><input type="radio" disabled ${q.correct ? 'checked' : ''}> Verdadero</label>
+      <label><input type="radio" disabled ${!q.correct ? 'checked' : ''}> Falso</label>
+    </div>`;
+  }
+  if (q.type === 'shortanswer') {
+    return `<input class="mq-input" type="text" placeholder="${q.answers.length ? 'Ej: ' + escH(q.answers[0]) : 'Respuesta...'}" disabled>`;
+  }
+  if (q.type === 'numerical') {
+    return `<input class="mq-input" type="text" placeholder="Número (± ${q.tolerance})" disabled>`;
+  }
+  if (q.type === 'essay') {
+    return `<textarea class="mq-textarea" placeholder="Escribe tu respuesta aquí..." disabled></textarea>`;
+  }
+  return '';
+}
+
+function escH(s) {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── Live update ──────────────────────────────────────────────────────────────
+
+let debounceTimer;
+document.getElementById('gift-editor').addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    const text = document.getElementById('gift-editor').value;
+    const qs = parseGIFT(text);
+    renderPreview(qs);
+    const bar = document.getElementById('status-bar');
+    bar.innerHTML = qs.length
+      ? `<span class="ok">✔ ${qs.length} pregunta${qs.length !== 1 ? 's' : ''} válida${qs.length !== 1 ? 's' : ''}</span>`
+      : '<span class="err">Sin preguntas detectadas</span>';
+  }, 200);
+});
+
+// ── Descargar XML (vía servidor) ─────────────────────────────────────────────
+
+async function descargarXML() {
+  const gift = document.getElementById('gift-editor').value.trim();
+  const category = document.getElementById('cat-input').value.trim();
+  const bar = document.getElementById('status-bar');
+
+  if (!gift) {
+    bar.innerHTML = '<span class="err">El editor está vacío.</span>';
+    return;
+  }
+
+  bar.innerHTML = 'Generando XML...';
+
+  try {
+    const resp = await fetch('/util/moodle-xml/generar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gift_text: gift, category })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      bar.innerHTML = `<span class="err">Error: ${err.error}</span>`;
+      return;
+    }
+
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (category || 'preguntas') + '.xml';
+    a.click();
+    URL.revokeObjectURL(url);
+    bar.innerHTML = '<span class="ok">✔ XML descargado correctamente</span>';
+  } catch (e) {
+    bar.innerHTML = `<span class="err">Error de red: ${e.message}</span>`;
+  }
+}
+</script>
+{% endblock %}
