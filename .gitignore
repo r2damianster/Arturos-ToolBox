@@ -42,3 +42,5 @@ data/*.db
 *.njsproj
 *.sln
 *.sw?
+
+graphify-out/
