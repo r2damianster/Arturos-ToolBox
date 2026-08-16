@@ -29,8 +29,8 @@
         <!-- 2. Info plan gratuito -->
         <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:10px 14px;
                     border-radius:4px;font-size:0.85em;color:#78350f;margin-bottom:16px;">
-            <strong>ℹ️ Modo gratuito (AssemblyAI):</strong>
-            Transcripción con detección de idioma. Sin identificación de hablantes (requiere plan de pago).
+            <strong>ℹ️ Transcripción (Groq Whisper):</strong>
+            Transcripción con detección de idioma. Sin identificación de hablantes.
             El resumen IA se genera con Groq.
         </div>
 
@@ -101,7 +101,7 @@ function enviarTranscripcion(e) {
     loading.style.display = 'block';
     btn.disabled  = true;
     btn.textContent = '⏳ Procesando...';
-    estadoTxt.textContent = '⏳ Enviando audio a AssemblyAI...';
+    estadoTxt.textContent = '⏳ Enviando audio a Groq...';
 
     const fd = new FormData(e.target);
 
@@ -118,7 +118,7 @@ function enviarTranscripcion(e) {
             return esperarTranscript(transcriptId);
         })
         .then(transcriptId => {
-            estadoTxt.textContent = '⏳ Generando resumen con LeMUR...';
+            estadoTxt.textContent = '⏳ Generando resumen con Groq...';
             // ── Paso 3: Descargar resultado ───────────────────────────────────
             return fetch(`/util/transcribir/resultado/${transcriptId}`);
         })

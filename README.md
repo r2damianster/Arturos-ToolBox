@@ -184,7 +184,7 @@ Acceso: **Sidebar → ⚙️ Gestión Docentes** → Login
 # Configurar en Render:
 # - Build Command: pip install -r requirements.txt
 # - Start Command: gunicorn app:app
-# - Variables de entorno: GROQ_API_KEY, ASSEMBLYAI_API_KEY, SECRET_KEY
+# - Variables de entorno: GROQ_API_KEY, SECRET_KEY
 ```
 
 ### Vercel
@@ -210,7 +210,7 @@ Utilidades/
 │   ├── ia_enriquecer.py        # Servicio de enriquecimiento con IA
 │   ├── db.py                   # CRUD SQLite para docentes
 │   ├── PatsMaestria.py         # Documentos de maestría
-│   ├── transcripcion_logic.py  # Transcripción AssemblyAI
+│   ├── transcripcion_logic.py  # Transcripción Groq Whisper
 │   ├── utilidades.py           # Funciones auxiliares
 │   └── PATS/                   # Templates PAT específicos
 │

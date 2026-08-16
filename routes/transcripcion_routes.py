@@ -16,7 +16,7 @@ transcripcion_bp = Blueprint('transcripcion', __name__)
 
 @transcripcion_bp.route('/util/transcribir/submit', methods=['POST'])
 def transcribir_submit():
-    """Recibe el audio, lo envía a AssemblyAI y retorna transcript_id inmediatamente."""
+    """Recibe el audio, lo transcribe con Groq Whisper y retorna transcript_id inmediatamente."""
     try:
         audio_file = request.files.get('audio_file')
         if not audio_file or not audio_file.filename:
@@ -38,7 +38,7 @@ def transcribir_submit():
 
 @transcripcion_bp.route('/util/transcribir/status/<transcript_id>', methods=['GET'])
 def transcribir_status(transcript_id):
-    """Consulta el estado del transcript en AssemblyAI."""
+    """Consulta el estado del transcript (Groq es síncrono)."""
     try:
         return jsonify(get_transcript_status(transcript_id))
     except Exception as e:
@@ -48,7 +48,7 @@ def transcribir_status(transcript_id):
 @transcripcion_bp.route('/util/transcribir/resultado/<transcript_id>', methods=['GET'])
 def transcribir_resultado(transcript_id):
     """
-    Cuando el transcript está completado, corre LeMUR y retorna el archivo TXT.
+    Cuando el transcript está completado, genera resumen con Groq LLM y retorna el archivo TXT.
     Este endpoint debe llamarse solo una vez, cuando el status sea 'completed'.
     """
     try:
@@ -74,7 +74,7 @@ def transcribir_resultado(transcript_id):
 
 @transcripcion_bp.route('/util/acta_extraer_audio/submit', methods=['POST'])
 def acta_submit():
-    """Recibe el audio del acta, lo envía a AssemblyAI y retorna transcript_id."""
+    """Recibe el audio del acta, lo transcribe con Groq Whisper y retorna transcript_id."""
     try:
         audio_file = request.files.get('audio_acta')
         if not audio_file or not audio_file.filename:
@@ -98,7 +98,7 @@ def acta_status(transcript_id):
 
 @transcripcion_bp.route('/util/acta_extraer_audio/resultado/<transcript_id>', methods=['GET'])
 def acta_resultado(transcript_id):
-    """Cuando el transcript está completado, corre LeMUR y retorna las notas JSON."""
+    """Cuando el transcript está completado, extrae las notas con Groq LLM y las retorna en JSON."""
     try:
         return jsonify(finalizar_acta(transcript_id))
     except Exception as e:
