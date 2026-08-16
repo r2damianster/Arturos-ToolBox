@@ -40,6 +40,7 @@
         <!-- 2. Participantes / Firmantes -->
         <fieldset>
             <legend>2. Participantes (aparecerán como firmantes)</legend>
+            <span class="help-text">Máximo 9 participantes (el acta tiene 10 espacios de firma: 1 para el convocante + 9 participantes).</span>
             <div id="lista-participantes">
                 <div class="participante-row"
                      style="display:grid;grid-template-columns:80px 1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
@@ -53,6 +54,9 @@
                 style="background:#e2e8f0;color:#1e293b;margin-top:8px;font-size:0.85em;padding:8px 16px;width:auto;">
                 + Añadir Participante
             </button>
+            <span id="participantes-limite" class="help-text" style="display:none;color:#dc2626;margin-left:8px;">
+                Límite de 9 participantes alcanzado — no caben más firmas en el acta.
+            </span>
         </fieldset>
 
         <!-- 3. Elaborado por -->
@@ -222,7 +226,7 @@ function extraerNotasDesdeAudio() {
             return esperarTranscriptActa(transcriptId);
         })
         .then(transcriptId => {
-            estado.textContent = '⏳ Generando notas con LeMUR...';
+            estado.textContent = '⏳ Generando notas con Groq...';
             // ── Paso 3: Obtener resultado ─────────────────────────────────────
             return fetch(`/util/acta_extraer_audio/resultado/${transcriptId}`);
         })
@@ -331,20 +335,37 @@ function enriquecerActaConIA() {
             });
             statusEl.textContent = '✅ Texto enriquecido. Podés editarlo.';
             statusEl.style.color = '#16a34a';
+            btn.disabled = true; // permanently disable until cooldown (solo en éxito)
+            btn.textContent = '✨ Enriquecer con IA';
         })
         .catch(err => {
             statusEl.textContent = `❌ ${err.message}`;
             statusEl.style.color = '#dc2626';
-        })
-        .finally(() => {
-            btn.disabled = true; // permanently disable until cooldown
+            btn.disabled = false; // permite reintentar tras error
             btn.textContent = '✨ Enriquecer con IA';
         });
 }
 
 // ── Add participante ─────────────────────────────────────────────────────────
+const MAX_PARTICIPANTES = 9; // la plantilla tiene 10 espacios de firma: 1 convocante + 9 participantes
+
+function actualizarLimiteParticipantes() {
+    const lista = document.getElementById('lista-participantes');
+    const btnAdd = document.getElementById('add-participante');
+    const avisoLimite = document.getElementById('participantes-limite');
+    const alLimite = lista.querySelectorAll('.participante-row').length >= MAX_PARTICIPANTES;
+    btnAdd.disabled = alLimite;
+    btnAdd.style.opacity = alLimite ? '0.5' : '1';
+    btnAdd.style.cursor = alLimite ? 'not-allowed' : 'pointer';
+    avisoLimite.style.display = alLimite ? 'inline' : 'none';
+}
+
 document.getElementById('add-participante').addEventListener('click', function() {
     const lista = document.getElementById('lista-participantes');
+    if (lista.querySelectorAll('.participante-row').length >= MAX_PARTICIPANTES) {
+        actualizarLimiteParticipantes();
+        return;
+    }
     const fila  = document.createElement('div');
     fila.className = 'participante-row';
     fila.style.cssText = 'display:grid;grid-template-columns:80px 1fr 1fr 1fr;gap:8px;margin-bottom:8px;';
@@ -353,11 +374,12 @@ document.getElementById('add-participante').addEventListener('click', function()
         <input type="text" name="p_nombre[]"   placeholder="Nombre"   required>
         <input type="text" name="p_apellido[]" placeholder="Apellido" required>
         <input type="text" name="p_cargo[]"    placeholder="Cargo" value="Docente">
-        <button type="button" onclick="this.closest('.participante-row').remove()"
+        <button type="button" onclick="this.closest('.participante-row').remove(); actualizarLimiteParticipantes();"
             style="grid-column:1/-1;background:#fee2e2;color:#991b1b;border:none;
                    border-radius:4px;padding:4px;cursor:pointer;font-size:0.8em;">
             ✕ Eliminar
         </button>`;
     lista.appendChild(fila);
+    actualizarLimiteParticipantes();
 });
 </script>
