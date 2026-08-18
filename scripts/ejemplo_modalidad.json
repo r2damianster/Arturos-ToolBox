@@ -1,0 +1,28 @@
+{
+  "modalidad": {
+    "slug": "proyecto_investigacion",
+    "nombre": "Proyecto de Investigación",
+    "requiere_subtipo": false
+  },
+  "rubrica": {
+    "slug": "proyecto_investigacion_completa",
+    "subtipo": null,
+    "plantilla_docx": "RUBRICA-Proyecto-Investigacion.docx",
+    "schema": {
+      "escala_total": 10,
+      "tabla_total_idx": 0,
+      "tablas": [
+        {
+          "nombre": "Rúbrica general — Proyecto de Investigación",
+          "escala": "peso_si_no",
+          "criterios": [
+            { "no": 1, "texto": "Planteamiento del problema", "peso": 3.00 },
+            { "no": 2, "texto": "Marco teórico y estado del arte", "peso": 2.50 },
+            { "no": 3, "texto": "Diseño metodológico", "peso": 2.50 },
+            { "no": 4, "texto": "Resultados y conclusiones", "peso": 2.00 }
+          ]
+        }
+      ]
+    }
+  }
+}

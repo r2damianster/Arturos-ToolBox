@@ -36,7 +36,8 @@ def titulacion_crear_evaluacion():
     try:
         datos = request.get_json(silent=True) or request.form
         evaluacion_id = crear_evaluacion(datos)
-        return jsonify({"evaluacion_id": evaluacion_id})
+        evaluacion = obtener_evaluacion(evaluacion_id)
+        return jsonify({"evaluacion_id": evaluacion_id, "fecha_limite": evaluacion.get('fecha_limite')})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

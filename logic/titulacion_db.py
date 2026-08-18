@@ -361,3 +361,48 @@ def get_rubrica(rubrica_id):
     d = dict(row)
     d["schema"] = json.loads(d["schema_json"])
     return d
+
+
+# ── Alta de modalidades/rúbricas sin tocar código (ver scripts/titulacion_admin.py) ──
+
+def upsert_modalidad(slug, nombre, requiere_subtipo=False):
+    """Inserta o actualiza una modalidad por su slug. El wizard la lee automáticamente."""
+    conn = get_conn()
+    fila = conn.execute("SELECT id FROM modalidades_titulacion WHERE slug = ?", (slug,)).fetchone()
+    if fila:
+        conn.execute(
+            "UPDATE modalidades_titulacion SET nombre = ?, requiere_subtipo = ? WHERE id = ?",
+            (nombre, int(requiere_subtipo), fila["id"])
+        )
+        modalidad_id = fila["id"]
+    else:
+        cur = conn.execute(
+            "INSERT INTO modalidades_titulacion (slug, nombre, requiere_subtipo) VALUES (?, ?, ?)",
+            (slug, nombre, int(requiere_subtipo))
+        )
+        modalidad_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return modalidad_id
+
+
+def upsert_rubrica(modalidad_id, slug, subtipo, plantilla_docx, schema):
+    """Inserta o actualiza una rúbrica por su slug. schema es el dict (no JSON-string)."""
+    conn = get_conn()
+    schema_json = json.dumps(schema, ensure_ascii=False)
+    fila = conn.execute("SELECT id FROM rubricas WHERE slug = ?", (slug,)).fetchone()
+    if fila:
+        conn.execute(
+            "UPDATE rubricas SET modalidad_id = ?, subtipo = ?, plantilla_docx = ?, schema_json = ? WHERE id = ?",
+            (modalidad_id, subtipo, plantilla_docx, schema_json, fila["id"])
+        )
+        rubrica_id = fila["id"]
+    else:
+        cur = conn.execute(
+            "INSERT INTO rubricas (modalidad_id, slug, subtipo, plantilla_docx, schema_json) VALUES (?, ?, ?, ?, ?)",
+            (modalidad_id, slug, subtipo, plantilla_docx, schema_json)
+        )
+        rubrica_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return rubrica_id

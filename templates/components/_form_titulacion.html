@@ -12,6 +12,9 @@
         <div class="tit-paso-dot" data-paso="4">4. Rúbrica</div>
     </div>
 
+    <!-- Contador de plazo (5 días hábiles desde el memo) -->
+    <div id="tit-plazo-banner" style="display:none;padding:10px 14px;border-radius:8px;border:1px solid;margin-bottom:16px;font-size:0.88em;font-weight:600;"></div>
+
     <!-- ── Paso 1: Datos del memo ── -->
     <div id="tit-paso-1" class="tit-paso">
         <div style="margin-bottom:14px;padding:10px 14px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;">
@@ -204,6 +207,44 @@
         info.textContent = `⏰ Fecha límite estimada (5 días hábiles): ${fecha.toLocaleDateString('es-EC')}. Si se vence, el trabajo se aprueba automáticamente con nota 10.`;
     });
 
+    function titulacionDiasHabilesRestantes(fechaLimiteStr) {
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        const limite = new Date(fechaLimiteStr + 'T00:00:00');
+        if (limite < hoy) return -1;          // vencido
+        if (limite.getTime() === hoy.getTime()) return 0;  // vence hoy
+        let dias = 0;
+        const cursor = new Date(hoy);
+        while (cursor < limite) {
+            cursor.setDate(cursor.getDate() + 1);
+            const dia = cursor.getDay();
+            if (dia !== 0 && dia !== 6) dias++;
+        }
+        return dias;
+    }
+
+    function titulacionActualizarPlazoBanner(fechaLimiteStr) {
+        const banner = document.getElementById('tit-plazo-banner');
+        if (!fechaLimiteStr) { banner.style.display = 'none'; return; }
+
+        const restantes = titulacionDiasHabilesRestantes(fechaLimiteStr);
+        const fechaFmt = new Date(fechaLimiteStr + 'T00:00:00').toLocaleDateString('es-EC');
+        banner.style.display = 'block';
+
+        if (restantes < 0) {
+            banner.style.background = '#fee2e2'; banner.style.borderColor = '#fca5a5'; banner.style.color = '#991b1b';
+            banner.textContent = `⛔ Plazo vencido (${fechaFmt}). Política 6.1.bb: el trabajo se aprueba automáticamente con nota 10 si no se entregó a tiempo.`;
+        } else if (restantes === 0) {
+            banner.style.background = '#fee2e2'; banner.style.borderColor = '#fca5a5'; banner.style.color = '#991b1b';
+            banner.textContent = `⏰ ¡Vence HOY (${fechaFmt})! Si no entregas hoy, el trabajo se aprueba automáticamente con nota 10.`;
+        } else if (restantes <= 2) {
+            banner.style.background = '#fef9c3'; banner.style.borderColor = '#fde047'; banner.style.color = '#713f12';
+            banner.textContent = `⚠️ Quedan ${restantes} día(s) hábil(es) — vence ${fechaFmt}.`;
+        } else {
+            banner.style.background = '#f0fdf4'; banner.style.borderColor = '#86efac'; banner.style.color = '#166534';
+            banner.textContent = `✅ Quedan ${restantes} días hábiles — vence ${fechaFmt}.`;
+        }
+    }
+
     function titulacionPrecargarMemoIA() {
         const input = document.getElementById('tit_memo_ia_file');
         const statusEl = document.getElementById('tit-memo-ia-status');
@@ -265,6 +306,7 @@
         .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; })
         .then(d => {
             titulacionEstado.evaluacionId = d.evaluacion_id;
+            titulacionActualizarPlazoBanner(d.fecha_limite);
             statusEl.textContent = '';
             titulacionCargarModalidades();
             titulacionMostrarPaso(2);
