@@ -10,6 +10,13 @@ from logic.titulacion_logic import (
     guardar_observaciones,
     generar_documentos_zip,
 )
+from logic.titulacion_ia import (
+    extraer_texto,
+    precargar_datos_memo,
+    obtener_texto_trabajo,
+    sugerir_comentario_criterio,
+)
+from logic.ia_enriquecer import check_rate_limit, record_usage, get_cooldown_seconds
 
 titulacion_bp = Blueprint('titulacion', __name__)
 
@@ -70,6 +77,69 @@ def titulacion_subir_archivo(evaluacion_id):
             return jsonify({"error": "No se recibió ningún archivo."}), 400
         ruta = guardar_archivo(evaluacion_id, archivo, tipo)
         return jsonify({"ok": True, "ruta": ruta})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def _cooldown_response():
+    _, remaining = check_rate_limit(request.remote_addr or 'global')
+    mins, secs = remaining // 60, remaining % 60
+    return jsonify({
+        "error": "Debes esperar antes de usar la IA nuevamente.",
+        "cooldown_remaining": remaining,
+        "cooldown_formatted": f"{mins}m {secs}s",
+    }), 429
+
+
+@titulacion_bp.route('/util/titulacion/precargar_memo', methods=['POST'])
+def titulacion_precargar_memo():
+    """Paso 1 (IA): extrae texto del PDF/DOCX del memo y precarga los campos del formulario."""
+    try:
+        archivo = request.files.get('archivo')
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "No se recibió ningún archivo."}), 400
+
+        user_id = request.remote_addr or 'global'
+        allowed, _ = check_rate_limit(user_id)
+        if not allowed:
+            return _cooldown_response()
+
+        texto = extraer_texto(archivo.filename, archivo.read())
+        datos, error = precargar_datos_memo(texto)
+        if error:
+            return jsonify({"error": error}), 500
+
+        record_usage(user_id)
+        return jsonify(datos)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@titulacion_bp.route('/util/titulacion/evaluacion/<int:evaluacion_id>/sugerir_indicador', methods=['POST'])
+def titulacion_sugerir_indicador(evaluacion_id):
+    """Paso 4 (IA): sugiere un comentario breve para un criterio, según el trabajo del estudiante."""
+    try:
+        datos = request.get_json(silent=True) or {}
+        criterio_texto = datos.get('criterio_texto', '').strip()
+        if not criterio_texto:
+            return jsonify({"error": "Falta 'criterio_texto'."}), 400
+
+        user_id = request.remote_addr or 'global'
+        allowed, _ = check_rate_limit(user_id)
+        if not allowed:
+            return _cooldown_response()
+
+        texto_trabajo = obtener_texto_trabajo(evaluacion_id)
+        sugerencia, error = sugerir_comentario_criterio(criterio_texto, texto_trabajo)
+        if error:
+            return jsonify({"error": error}), 500
+
+        record_usage(user_id)
+        return jsonify({"sugerencia": sugerencia})
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
