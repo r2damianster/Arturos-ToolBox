@@ -9,6 +9,7 @@
         <div class="tit-paso-dot tit-paso-activo" data-paso="1">1. Memo</div>
         <div class="tit-paso-dot" data-paso="2">2. Modalidad</div>
         <div class="tit-paso-dot" data-paso="3">3. Archivos</div>
+        <div class="tit-paso-dot" data-paso="4">4. Rúbrica</div>
     </div>
 
     <!-- ── Paso 1: Datos del memo ── -->
@@ -111,15 +112,27 @@
         <span id="tit-paso3-status" style="margin-left:10px;font-size:0.85em;color:#64748b;"></span>
     </div>
 
-    <!-- ── Confirmación (placeholder hasta Fase 3: rúbrica interactiva) ── -->
+    <!-- ── Paso 4: Rúbrica interactiva ── -->
     <div id="tit-paso-4" class="tit-paso hidden">
-        <div style="padding:20px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;">
-            <strong style="color:#166534;">✅ Evaluación #<span id="tit-eval-id"></span> creada.</strong>
-            <p style="color:#15803d;font-size:0.9em;margin:6px 0 0;">
-                Memo, modalidad y archivos guardados. La rúbrica interactiva y la generación de documentos
-                estarán disponibles en la siguiente fase de este módulo.
-            </p>
+        <div style="position:sticky;top:0;background:#fff;z-index:5;padding:10px 0;border-bottom:1px solid #e2e8f0;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div style="font-size:0.85em;color:#64748b;">Evaluación #<span id="tit-eval-id"></span></div>
+            <div style="font-size:1.1em;font-weight:700;color:#1e293b;">
+                Calificación Total: <span id="tit-puntaje-total" style="color:#6366f1;">0.00</span> / 10
+            </div>
         </div>
+
+        <div id="tit-rubrica-tablas"></div>
+
+        <fieldset>
+            <legend>Observaciones (Informe de Criterios Observados)</legend>
+            <div style="margin-bottom:10px;font-size:0.85em;color:#64748b;">Aspectos formales</div>
+            <div id="tit-obs-formal"></div>
+            <div style="margin:14px 0 10px;font-size:0.85em;color:#64748b;">Aspectos de fondo</div>
+            <div id="tit-obs-fondo"></div>
+        </fieldset>
+
+        <button type="button" class="submit-btn" onclick="titulacionGuardarRubrica()">💾 Guardar evaluación</button>
+        <span id="tit-paso4-status" style="margin-left:10px;font-size:0.85em;color:#64748b;"></span>
     </div>
 
     <style>
@@ -129,6 +142,24 @@
         }
         .tit-paso-dot.tit-paso-activo { background:#6366f1;color:#fff; }
         .tit-paso-dot.tit-paso-hecho { background:#16a34a;color:#fff; }
+
+        .tit-criterio-row { border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:8px; }
+        .tit-criterio-etapa { font-size:0.72em;font-weight:700;text-transform:uppercase;color:#6366f1;margin-bottom:2px; }
+        .tit-criterio-texto { font-size:0.88em;color:#1e293b;white-space:pre-line;margin-bottom:8px; }
+        .tit-criterio-peso { font-size:0.78em;color:#64748b;margin-left:6px; }
+        .tit-si-no-group { display:flex;gap:8px;margin-bottom:6px; }
+        .tit-si-no-btn { padding:5px 16px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;cursor:pointer;font-size:0.82em;font-weight:600; }
+        .tit-si-no-btn.tit-si-activo { background:#16a34a;color:#fff;border-color:#16a34a; }
+        .tit-si-no-btn.tit-no-activo { background:#dc2626;color:#fff;border-color:#dc2626; }
+        .tit-niveles-group { display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px; }
+        .tit-nivel-btn { padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;cursor:pointer;font-size:0.78em;max-width:220px;text-align:left; }
+        .tit-nivel-btn.tit-nivel-activo { background:#6366f1;color:#fff;border-color:#6366f1; }
+        .tit-nivel-btn.tit-nivel-na { background:#f1f5f9;color:#94a3b8;cursor:not-allowed; }
+        .tit-criterio-comentario { width:100%;font-size:0.85em;padding:6px;border:1px solid #cbd5e1;border-radius:6px; }
+        .tit-criterio-guia { font-size:0.78em;color:#94a3b8;font-style:italic;margin-bottom:6px; }
+        .tit-obs-row { display:grid;grid-template-columns:220px 1fr;gap:10px;align-items:start;margin-bottom:6px; }
+        .tit-obs-row label { font-size:0.85em;color:#334155;padding-top:6px; }
+        .tit-obs-row textarea { font-size:0.85em;padding:6px;border:1px solid #cbd5e1;border-radius:6px;width:100%; }
     </style>
 
     <script>
@@ -298,9 +329,213 @@
         .then(() => {
             statusEl.textContent = '';
             document.getElementById('tit-eval-id').textContent = titulacionEstado.evaluacionId;
-            titulacionMostrarPaso(4);
+            titulacionCargarDetalle();
         })
         .catch(() => { statusEl.textContent = '❌ Revisa los archivos e intenta de nuevo.'; statusEl.style.color = '#dc2626'; });
+    }
+
+    // ── Paso 4: rúbrica interactiva data-driven ──────────────────────────
+
+    titulacionEstado.indicadores = {};   // clave `${tablaIdx}_${criterioIdx}` -> objeto indicador
+    titulacionEstado.observaciones = []; // filas tal cual vienen del backend (con id)
+    titulacionEstado.schema = null;
+
+    function titulacionClaveIndicador(tablaIdx, criterioIdx) {
+        return tablaIdx + '_' + criterioIdx;
+    }
+
+    function titulacionCargarDetalle() {
+        fetch(`/util/titulacion/evaluacion/${titulacionEstado.evaluacionId}/detalle`)
+            .then(r => r.json())
+            .then(d => {
+                titulacionEstado.schema = d.rubrica.schema;
+                titulacionEstado.observaciones = d.observaciones;
+
+                titulacionEstado.indicadores = {};
+                (d.indicadores || []).forEach(ind => {
+                    titulacionEstado.indicadores[titulacionClaveIndicador(ind.tabla_idx, ind.criterio_idx)] = ind;
+                });
+
+                titulacionRenderTablas();
+                titulacionRenderObservaciones();
+                titulacionRecalcularTotal();
+                titulacionMostrarPaso(4);
+            });
+    }
+
+    function titulacionObtenerIndicador(tablaIdx, criterioIdx, criterio) {
+        const clave = titulacionClaveIndicador(tablaIdx, criterioIdx);
+        if (!titulacionEstado.indicadores[clave]) {
+            titulacionEstado.indicadores[clave] = {
+                tabla_idx: tablaIdx, criterio_idx: criterioIdx,
+                criterio_texto: criterio.texto, peso: criterio.peso || 0,
+                respuesta: null, calificacion: null, comentario: '',
+            };
+        }
+        return titulacionEstado.indicadores[clave];
+    }
+
+    function titulacionRenderTablas() {
+        const cont = document.getElementById('tit-rubrica-tablas');
+        cont.innerHTML = '';
+        titulacionEstado.schema.tablas.forEach((tabla, tablaIdx) => {
+            const fieldset = document.createElement('fieldset');
+            const legend = document.createElement('legend');
+            legend.textContent = tabla.nombre;
+            fieldset.appendChild(legend);
+
+            tabla.criterios.forEach((criterio, criterioIdx) => {
+                fieldset.appendChild(titulacionRenderCriterio(tabla, tablaIdx, criterio, criterioIdx));
+            });
+            cont.appendChild(fieldset);
+        });
+    }
+
+    function titulacionRenderCriterio(tabla, tablaIdx, criterio, criterioIdx) {
+        const ind = titulacionObtenerIndicador(tablaIdx, criterioIdx, criterio);
+        const row = document.createElement('div');
+        row.className = 'tit-criterio-row';
+
+        let html = '';
+        if (criterio.etapa) html += `<div class="tit-criterio-etapa">${criterio.etapa}</div>`;
+        html += `<div class="tit-criterio-texto">${criterio.texto}</div>`;
+        if (criterio.guia) html += `<div class="tit-criterio-guia">💡 ${criterio.guia}</div>`;
+        row.innerHTML = html;
+
+        if (tabla.escala === 'peso_si_no' || tabla.escala === 'si_no') {
+            const grupo = document.createElement('div');
+            grupo.className = 'tit-si-no-group';
+            if (tabla.escala === 'peso_si_no') {
+                const pesoSpan = document.createElement('span');
+                pesoSpan.className = 'tit-criterio-peso';
+                pesoSpan.textContent = `(peso ${criterio.peso})`;
+                row.querySelector('.tit-criterio-texto').appendChild(pesoSpan);
+            }
+            ['YES', 'NO'].forEach(valor => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = valor;
+                btn.className = 'tit-si-no-btn' + (ind.respuesta === valor ? (valor === 'YES' ? ' tit-si-activo' : ' tit-no-activo') : '');
+                btn.onclick = () => {
+                    ind.respuesta = valor;
+                    ind.calificacion = (tabla.escala === 'peso_si_no') ? (valor === 'YES' ? (criterio.peso || 0) : 0) : null;
+                    titulacionRenderTablas();
+                    titulacionRecalcularTotal();
+                };
+                grupo.appendChild(btn);
+            });
+            row.appendChild(grupo);
+        } else if (tabla.escala === 'niveles_4') {
+            const grupo = document.createElement('div');
+            grupo.className = 'tit-niveles-group';
+            (tabla.niveles || []).forEach(nivel => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'tit-nivel-btn' + (ind.respuesta === String(nivel.pct) ? ' tit-nivel-activo' : '');
+                btn.title = (criterio.descriptores || {})[String(nivel.pct)] || '';
+                btn.textContent = `${nivel.label} (${nivel.pct}%)`;
+                btn.onclick = () => {
+                    ind.respuesta = String(nivel.pct);
+                    ind.calificacion = round2((criterio.peso || 0) * nivel.pct / 100);
+                    titulacionRenderTablas();
+                    titulacionRecalcularTotal();
+                };
+                grupo.appendChild(btn);
+            });
+            row.appendChild(grupo);
+        } else if (tabla.escala === 'niveles_especial') {
+            const grupo = document.createElement('div');
+            grupo.className = 'tit-niveles-group';
+            Object.entries(criterio.niveles || {}).forEach(([pct, etiqueta]) => {
+                const esNA = etiqueta === 'N/A';
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.disabled = esNA;
+                btn.className = 'tit-nivel-btn' + (esNA ? ' tit-nivel-na' : '') + (ind.respuesta === pct ? ' tit-nivel-activo' : '');
+                btn.textContent = etiqueta;
+                if (!esNA) {
+                    btn.onclick = () => {
+                        ind.respuesta = pct;
+                        ind.calificacion = round2((criterio.peso || 0) * parseInt(pct, 10) / 100);
+                        titulacionRenderTablas();
+                        titulacionRecalcularTotal();
+                    };
+                }
+                grupo.appendChild(btn);
+            });
+            row.appendChild(grupo);
+        }
+
+        if (tabla.escala !== 'si_no') {
+            const comentario = document.createElement('textarea');
+            comentario.className = 'tit-criterio-comentario';
+            comentario.rows = 2;
+            comentario.placeholder = 'Comentario (opcional)';
+            comentario.value = ind.comentario || '';
+            comentario.oninput = () => { ind.comentario = comentario.value; };
+            row.appendChild(comentario);
+        }
+
+        return row;
+    }
+
+    function round2(n) { return Math.round(n * 100) / 100; }
+
+    function titulacionRecalcularTotal() {
+        const tablaTotalIdx = titulacionEstado.schema.tabla_total_idx || 0;
+        let total = 0;
+        Object.values(titulacionEstado.indicadores).forEach(ind => {
+            if (ind.tabla_idx === tablaTotalIdx && ind.calificacion != null) total += ind.calificacion;
+        });
+        document.getElementById('tit-puntaje-total').textContent = round2(total).toFixed(2);
+    }
+
+    function titulacionRenderObservaciones() {
+        ['formal', 'fondo'].forEach(seccion => {
+            const cont = document.getElementById(seccion === 'formal' ? 'tit-obs-formal' : 'tit-obs-fondo');
+            cont.innerHTML = '';
+            titulacionEstado.observaciones
+                .filter(o => o.seccion === seccion)
+                .forEach(obs => {
+                    const row = document.createElement('div');
+                    row.className = 'tit-obs-row';
+                    const label = document.createElement('label');
+                    label.textContent = obs.componente;
+                    const textarea = document.createElement('textarea');
+                    textarea.rows = 2;
+                    textarea.value = obs.observacion || '';
+                    textarea.oninput = () => { obs.observacion = textarea.value; };
+                    row.appendChild(label);
+                    row.appendChild(textarea);
+                    cont.appendChild(row);
+                });
+        });
+    }
+
+    function titulacionGuardarRubrica() {
+        const statusEl = document.getElementById('tit-paso4-status');
+        statusEl.textContent = '⏳ Guardando...';
+        statusEl.style.color = '#64748b';
+
+        const indicadores = Object.values(titulacionEstado.indicadores);
+
+        Promise.all([
+            fetch(`/util/titulacion/evaluacion/${titulacionEstado.evaluacionId}/indicadores`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(indicadores)
+            }),
+            fetch(`/util/titulacion/evaluacion/${titulacionEstado.evaluacionId}/observaciones`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(titulacionEstado.observaciones)
+            }),
+        ])
+        .then(async ([r1, r2]) => {
+            const d1 = await r1.json(); const d2 = await r2.json();
+            if (!r1.ok) throw new Error(d1.error);
+            if (!r2.ok) throw new Error(d2.error);
+        })
+        .then(() => { statusEl.textContent = '✅ Evaluación guardada.'; statusEl.style.color = '#16a34a'; })
+        .catch(err => { statusEl.textContent = `❌ ${err.message}`; statusEl.style.color = '#dc2626'; });
     }
     </script>
 </div>

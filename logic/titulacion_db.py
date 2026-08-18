@@ -168,6 +168,7 @@ def _seed_catalogo(conn):
 def _schema_tefl():
     return {
         "escala_total": 10,
+        "tabla_total_idx": 0,  # tabla 0 (Rúbrica general) suma exactamente 10.00 de peso
         "tablas": [
             {
                 "nombre": "Rúbrica general — Trabajo Escrito",
@@ -236,6 +237,7 @@ def _schema_tefl():
 def _schema_articulo_no_publicado():
     return {
         "escala_total": 10,
+        "tabla_total_idx": 0,
         "tablas": [
             {
                 "nombre": "Rúbrica — Artículo/Capítulo NO publicado",
@@ -305,6 +307,7 @@ def _schema_articulo_no_publicado():
 def _schema_articulo_publicado():
     return {
         "escala_total": 10,
+        "tabla_total_idx": 0,
         "tablas": [
             {
                 "nombre": "Rúbrica — Artículo/Capítulo publicado",

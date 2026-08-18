@@ -147,3 +147,81 @@ def guardar_archivo(evaluacion_id, file_storage, tipo):
     conn.commit()
     conn.close()
     return ruta_relativa
+
+
+# ── Fase 3: rúbrica interactiva + observaciones ───────────────────────────
+
+def obtener_detalle_evaluacion(evaluacion_id):
+    """Evaluación + rúbrica (schema) + indicadores y observaciones ya guardados, para renderizar el paso 4."""
+    evaluacion = obtener_evaluacion(evaluacion_id)
+    if not evaluacion:
+        return None
+
+    conn = get_conn()
+    indicadores = [dict(r) for r in conn.execute(
+        "SELECT * FROM evaluacion_indicadores WHERE evaluacion_id = ? ORDER BY tabla_idx, criterio_idx",
+        (evaluacion_id,)
+    ).fetchall()]
+    observaciones = [dict(r) for r in conn.execute(
+        "SELECT * FROM evaluacion_observaciones WHERE evaluacion_id = ? ORDER BY id",
+        (evaluacion_id,)
+    ).fetchall()]
+    conn.close()
+
+    evaluacion['indicadores'] = indicadores
+    evaluacion['observaciones'] = observaciones
+    if evaluacion.get('rubrica'):
+        evaluacion['puntaje_total'] = calcular_puntaje_total(evaluacion['rubrica']['schema'], indicadores)
+    return evaluacion
+
+
+def calcular_puntaje_total(schema, indicadores):
+    """Suma las calificaciones de la tabla que representa el /10 (schema['tabla_total_idx'])."""
+    tabla_total_idx = schema.get('tabla_total_idx', 0)
+    total = 0.0
+    for indicador in indicadores:
+        if indicador.get('tabla_idx') != tabla_total_idx:
+            continue
+        if indicador.get('calificacion') is not None:
+            total += float(indicador['calificacion'])
+    return round(total, 2)
+
+
+def guardar_indicadores(evaluacion_id, indicadores):
+    """Reemplaza todos los indicadores de la evaluación (guardado explícito, no autosave por keystroke)."""
+    conn = get_conn()
+    conn.execute("DELETE FROM evaluacion_indicadores WHERE evaluacion_id = ?", (evaluacion_id,))
+    for ind in indicadores:
+        conn.execute("""
+            INSERT INTO evaluacion_indicadores (
+                evaluacion_id, tabla_idx, criterio_idx, criterio_texto, peso,
+                respuesta, calificacion, comentario, sugerencia_ia
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            evaluacion_id,
+            ind.get('tabla_idx'),
+            ind.get('criterio_idx'),
+            ind.get('criterio_texto', ''),
+            ind.get('peso') or 0,
+            ind.get('respuesta'),
+            ind.get('calificacion'),
+            ind.get('comentario', ''),
+            ind.get('sugerencia_ia'),
+        ))
+    conn.commit()
+    conn.close()
+
+
+def guardar_observaciones(evaluacion_id, observaciones):
+    """Actualiza el texto de observación de cada componente (formal/fondo) ya precargado."""
+    conn = get_conn()
+    for obs in observaciones:
+        obs_id = obs.get('id')
+        if not obs_id:
+            continue
+        conn.execute(
+            "UPDATE evaluacion_observaciones SET observacion = ? WHERE id = ? AND evaluacion_id = ?",
+            (obs.get('observacion', ''), obs_id, evaluacion_id)
+        )
+    conn.commit()
+    conn.close()

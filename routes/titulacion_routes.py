@@ -5,6 +5,9 @@ from logic.titulacion_logic import (
     actualizar_modalidad,
     obtener_evaluacion,
     guardar_archivo,
+    obtener_detalle_evaluacion,
+    guardar_indicadores,
+    guardar_observaciones,
 )
 
 titulacion_bp = Blueprint('titulacion', __name__)
@@ -68,5 +71,39 @@ def titulacion_subir_archivo(evaluacion_id):
         return jsonify({"ok": True, "ruta": ruta})
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@titulacion_bp.route('/util/titulacion/evaluacion/<int:evaluacion_id>/detalle', methods=['GET'])
+def titulacion_detalle_evaluacion(evaluacion_id):
+    """Paso 4: evaluación + schema de la rúbrica + indicadores/observaciones ya guardados."""
+    try:
+        detalle = obtener_detalle_evaluacion(evaluacion_id)
+        if not detalle:
+            return jsonify({"error": "Evaluación no encontrada"}), 404
+        return jsonify(detalle)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@titulacion_bp.route('/util/titulacion/evaluacion/<int:evaluacion_id>/indicadores', methods=['POST'])
+def titulacion_guardar_indicadores(evaluacion_id):
+    """Guarda (reemplaza) todas las respuestas de la rúbrica interactiva."""
+    try:
+        indicadores = request.get_json(silent=True) or []
+        guardar_indicadores(evaluacion_id, indicadores)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@titulacion_bp.route('/util/titulacion/evaluacion/<int:evaluacion_id>/observaciones', methods=['POST'])
+def titulacion_guardar_observaciones(evaluacion_id):
+    """Guarda el texto de las observaciones (Informe de Criterios Observados)."""
+    try:
+        observaciones = request.get_json(silent=True) or []
+        guardar_observaciones(evaluacion_id, observaciones)
+        return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
