@@ -31,6 +31,7 @@ CLAUDE.md
 
 # Database (SQLite)
 data/*.db
+data/titulacion_uploads/
 
 # Editor directories and files
 .vscode/*

@@ -1,0 +1,306 @@
+<div class="container" style="max-width:900px;">
+    <h1>🎓 Evaluación de Pares Lectores (Titulación)</h1>
+    <p style="color:#64748b;font-size:0.9em;margin-top:-8px;">
+        Registra tu evaluación como par lector: datos del memo, modalidad del trabajo y los archivos a revisar.
+    </p>
+
+    <!-- Indicador de pasos -->
+    <div id="tit-pasos" style="display:flex;gap:8px;margin:18px 0 22px;">
+        <div class="tit-paso-dot tit-paso-activo" data-paso="1">1. Memo</div>
+        <div class="tit-paso-dot" data-paso="2">2. Modalidad</div>
+        <div class="tit-paso-dot" data-paso="3">3. Archivos</div>
+    </div>
+
+    <!-- ── Paso 1: Datos del memo ── -->
+    <div id="tit-paso-1" class="tit-paso">
+        <fieldset>
+            <legend>Datos del Memo de Comisión Académica</legend>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                    <label>N.º de memorando:</label>
+                    <input type="text" id="tit_numero_memo" placeholder="Ej: Uleam-FET-CA-ATRS-2026-1-PINE-009" required>
+                </div>
+                <div>
+                    <label>Fecha del memo:</label>
+                    <input type="date" id="tit_fecha_memo" required>
+                    <small style="display:block;color:#64748b;">Plazo: 5 días hábiles desde esta fecha.</small>
+                </div>
+                <div>
+                    <label>Facultad y/o Extensión:</label>
+                    <input type="text" id="tit_facultad" placeholder="Ej: Facultad de Educación y Turismo">
+                </div>
+                <div>
+                    <label>Carrera:</label>
+                    <input type="text" id="tit_carrera" placeholder="Ej: Pedagogía de los Idiomas Nacionales y Extranjeros">
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label>Opción de Titulación:</label>
+                    <input type="text" id="tit_opcion_titulacion" placeholder="Ej: TEFL Application Process / Artículo Científico">
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label>Título del trabajo:</label>
+                    <input type="text" id="tit_titulo_trabajo" required>
+                </div>
+                <div>
+                    <label>Estudiante:</label>
+                    <input type="text" id="tit_estudiante">
+                </div>
+                <div>
+                    <label>Tutor/a del trabajo:</label>
+                    <input type="text" id="tit_tutor">
+                </div>
+                <div>
+                    <label>Su nombre (evaluador/a):</label>
+                    <input type="text" id="tit_evaluador_nombre" required>
+                </div>
+                <div>
+                    <label>Su correo institucional:</label>
+                    <input type="email" id="tit_evaluador_correo" placeholder="nombre@uleam.edu.ec">
+                </div>
+            </div>
+        </fieldset>
+        <div id="tit-fecha-limite-info" style="display:none;margin-top:10px;padding:10px 14px;background:#fef9c3;border:1px solid #fde047;border-radius:8px;font-size:0.88em;color:#713f12;"></div>
+        <button type="button" class="submit-btn" onclick="titulacionCrearEvaluacion()">Continuar →</button>
+        <span id="tit-paso1-status" style="margin-left:10px;font-size:0.85em;color:#64748b;"></span>
+    </div>
+
+    <!-- ── Paso 2: Modalidad ── -->
+    <div id="tit-paso-2" class="tit-paso hidden">
+        <fieldset>
+            <legend>Modalidad de Titulación</legend>
+            <div style="margin-bottom:12px;">
+                <label>Modalidad:</label>
+                <select id="tit_modalidad" onchange="titulacionCambioModalidad()" required>
+                    <option value="" disabled selected>-- Seleccione la modalidad --</option>
+                </select>
+            </div>
+            <div id="tit-subtipo-wrap" style="display:none;margin-bottom:12px;">
+                <label>Estado de publicación del artículo:</label>
+                <select id="tit_subtipo" onchange="titulacionActualizarRubricaSeleccionada()">
+                    <option value="" disabled selected>-- Seleccione --</option>
+                    <option value="no_publicado">No publicado</option>
+                    <option value="publicado">Publicado</option>
+                </select>
+                <small style="display:block;color:#64748b;margin-top:4px;">
+                    La rúbrica de sustentación oral no aplica a este proceso de par lector.
+                </small>
+            </div>
+        </fieldset>
+        <button type="button" class="submit-btn" onclick="titulacionGuardarModalidad()">Continuar →</button>
+        <span id="tit-paso2-status" style="margin-left:10px;font-size:0.85em;color:#64748b;"></span>
+    </div>
+
+    <!-- ── Paso 3: Archivos ── -->
+    <div id="tit-paso-3" class="tit-paso hidden">
+        <fieldset>
+            <legend>Archivos a Revisar</legend>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                    <label>PDF del memo (opcional):</label>
+                    <input type="file" id="tit_archivo_memo" accept=".pdf,.docx,.doc">
+                    <div id="tit-memo-status" style="font-size:0.8em;color:#64748b;margin-top:4px;"></div>
+                </div>
+                <div>
+                    <label>Trabajo del estudiante:</label>
+                    <input type="file" id="tit_archivo_trabajo" accept=".pdf,.docx,.doc" required>
+                    <div id="tit-trabajo-status" style="font-size:0.8em;color:#64748b;margin-top:4px;"></div>
+                </div>
+            </div>
+        </fieldset>
+        <button type="button" class="submit-btn" onclick="titulacionSubirArchivos()">Guardar y continuar →</button>
+        <span id="tit-paso3-status" style="margin-left:10px;font-size:0.85em;color:#64748b;"></span>
+    </div>
+
+    <!-- ── Confirmación (placeholder hasta Fase 3: rúbrica interactiva) ── -->
+    <div id="tit-paso-4" class="tit-paso hidden">
+        <div style="padding:20px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;">
+            <strong style="color:#166534;">✅ Evaluación #<span id="tit-eval-id"></span> creada.</strong>
+            <p style="color:#15803d;font-size:0.9em;margin:6px 0 0;">
+                Memo, modalidad y archivos guardados. La rúbrica interactiva y la generación de documentos
+                estarán disponibles en la siguiente fase de este módulo.
+            </p>
+        </div>
+    </div>
+
+    <style>
+        .tit-paso-dot {
+            padding:6px 14px;border-radius:20px;background:#f1f5f9;color:#64748b;
+            font-size:0.82em;font-weight:600;
+        }
+        .tit-paso-dot.tit-paso-activo { background:#6366f1;color:#fff; }
+        .tit-paso-dot.tit-paso-hecho { background:#16a34a;color:#fff; }
+    </style>
+
+    <script>
+    let titulacionEstado = {
+        evaluacionId: null,
+        modalidades: [],
+        modalidadId: null,
+        rubricaId: null,
+    };
+
+    function titulacionMostrarPaso(n) {
+        document.querySelectorAll('.tit-paso').forEach(el => el.classList.add('hidden'));
+        document.getElementById('tit-paso-' + n).classList.remove('hidden');
+        document.querySelectorAll('.tit-paso-dot').forEach(dot => {
+            const p = parseInt(dot.dataset.paso, 10);
+            dot.classList.remove('tit-paso-activo', 'tit-paso-hecho');
+            if (p === n) dot.classList.add('tit-paso-activo');
+            else if (p < n) dot.classList.add('tit-paso-hecho');
+        });
+    }
+
+    document.getElementById('tit_fecha_memo').addEventListener('change', function() {
+        const info = document.getElementById('tit-fecha-limite-info');
+        if (!this.value) { info.style.display = 'none'; return; }
+        const fecha = new Date(this.value + 'T00:00:00');
+        let restantes = 5;
+        while (restantes > 0) {
+            fecha.setDate(fecha.getDate() + 1);
+            const dia = fecha.getDay();
+            if (dia !== 0 && dia !== 6) restantes--;
+        }
+        info.style.display = 'block';
+        info.textContent = `⏰ Fecha límite estimada (5 días hábiles): ${fecha.toLocaleDateString('es-EC')}. Si se vence, el trabajo se aprueba automáticamente con nota 10.`;
+    });
+
+    function titulacionCrearEvaluacion() {
+        const statusEl = document.getElementById('tit-paso1-status');
+        const datos = {
+            numero_memo: document.getElementById('tit_numero_memo').value.trim(),
+            fecha_memo: document.getElementById('tit_fecha_memo').value,
+            facultad: document.getElementById('tit_facultad').value.trim(),
+            carrera: document.getElementById('tit_carrera').value.trim(),
+            opcion_titulacion: document.getElementById('tit_opcion_titulacion').value.trim(),
+            titulo_trabajo: document.getElementById('tit_titulo_trabajo').value.trim(),
+            estudiante: document.getElementById('tit_estudiante').value.trim(),
+            tutor: document.getElementById('tit_tutor').value.trim(),
+            evaluador_nombre: document.getElementById('tit_evaluador_nombre').value.trim(),
+            evaluador_correo: document.getElementById('tit_evaluador_correo').value.trim(),
+        };
+        if (!datos.titulo_trabajo || !datos.evaluador_nombre) {
+            statusEl.textContent = '⚠️ Completa título del trabajo y tu nombre.';
+            statusEl.style.color = '#dc2626';
+            return;
+        }
+        statusEl.textContent = '⏳ Guardando...';
+        statusEl.style.color = '#64748b';
+
+        fetch('/util/titulacion/evaluacion', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(datos)
+        })
+        .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; })
+        .then(d => {
+            titulacionEstado.evaluacionId = d.evaluacion_id;
+            statusEl.textContent = '';
+            titulacionCargarModalidades();
+            titulacionMostrarPaso(2);
+        })
+        .catch(err => {
+            statusEl.textContent = `❌ ${err.message}`;
+            statusEl.style.color = '#dc2626';
+        });
+    }
+
+    function titulacionCargarModalidades() {
+        fetch('/util/titulacion/modalidades')
+            .then(r => r.json())
+            .then(modalidades => {
+                titulacionEstado.modalidades = modalidades;
+                const sel = document.getElementById('tit_modalidad');
+                sel.innerHTML = '<option value="" disabled selected>-- Seleccione la modalidad --</option>';
+                modalidades.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = m.nombre;
+                    opt.dataset.requiereSubtipo = m.requiere_subtipo;
+                    sel.appendChild(opt);
+                });
+            });
+    }
+
+    function titulacionCambioModalidad() {
+        const sel = document.getElementById('tit_modalidad');
+        const opt = sel.options[sel.selectedIndex];
+        const requiereSubtipo = opt.dataset.requiereSubtipo === '1';
+        document.getElementById('tit-subtipo-wrap').style.display = requiereSubtipo ? 'block' : 'none';
+        titulacionEstado.modalidadId = parseInt(sel.value, 10);
+        if (!requiereSubtipo) titulacionActualizarRubricaSeleccionada();
+    }
+
+    function titulacionActualizarRubricaSeleccionada() {
+        const modalidad = titulacionEstado.modalidades.find(m => m.id === titulacionEstado.modalidadId);
+        if (!modalidad) return;
+        const subtipoSel = document.getElementById('tit_subtipo');
+        const subtipo = document.getElementById('tit-subtipo-wrap').style.display === 'block' ? subtipoSel.value : null;
+        const rubrica = modalidad.rubricas.find(r => r.subtipo === subtipo);
+        titulacionEstado.rubricaId = rubrica ? rubrica.id : null;
+    }
+
+    function titulacionGuardarModalidad() {
+        titulacionActualizarRubricaSeleccionada();
+        const statusEl = document.getElementById('tit-paso2-status');
+        if (!titulacionEstado.modalidadId || !titulacionEstado.rubricaId) {
+            statusEl.textContent = '⚠️ Selecciona modalidad (y subtipo si aplica).';
+            statusEl.style.color = '#dc2626';
+            return;
+        }
+        statusEl.textContent = '⏳ Guardando...';
+        statusEl.style.color = '#64748b';
+
+        fetch(`/util/titulacion/evaluacion/${titulacionEstado.evaluacionId}/modalidad`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ modalidad_id: titulacionEstado.modalidadId, rubrica_id: titulacionEstado.rubricaId })
+        })
+        .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; })
+        .then(() => { statusEl.textContent = ''; titulacionMostrarPaso(3); })
+        .catch(err => {
+            statusEl.textContent = `❌ ${err.message}`;
+            statusEl.style.color = '#dc2626';
+        });
+    }
+
+    function titulacionSubirUnArchivo(inputId, tipo, statusElId) {
+        const input = document.getElementById(inputId);
+        const statusEl = document.getElementById(statusElId);
+        if (!input.files.length) return Promise.resolve();
+
+        const form = new FormData();
+        form.append('archivo', input.files[0]);
+        form.append('tipo', tipo);
+        statusEl.textContent = '⏳ Subiendo...';
+        statusEl.style.color = '#64748b';
+
+        return fetch(`/util/titulacion/evaluacion/${titulacionEstado.evaluacionId}/archivo`, {
+            method: 'POST', body: form
+        })
+        .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; })
+        .then(() => { statusEl.textContent = '✅ Subido.'; statusEl.style.color = '#16a34a'; })
+        .catch(err => { statusEl.textContent = `❌ ${err.message}`; statusEl.style.color = '#dc2626'; throw err; });
+    }
+
+    function titulacionSubirArchivos() {
+        const statusEl = document.getElementById('tit-paso3-status');
+        const trabajoInput = document.getElementById('tit_archivo_trabajo');
+        if (!trabajoInput.files.length) {
+            statusEl.textContent = '⚠️ Sube el trabajo del estudiante.';
+            statusEl.style.color = '#dc2626';
+            return;
+        }
+        statusEl.textContent = '⏳ Procesando...';
+        statusEl.style.color = '#64748b';
+
+        Promise.all([
+            titulacionSubirUnArchivo('tit_archivo_memo', 'memo', 'tit-memo-status'),
+            titulacionSubirUnArchivo('tit_archivo_trabajo', 'trabajo', 'tit-trabajo-status'),
+        ])
+        .then(() => {
+            statusEl.textContent = '';
+            document.getElementById('tit-eval-id').textContent = titulacionEstado.evaluacionId;
+            titulacionMostrarPaso(4);
+        })
+        .catch(() => { statusEl.textContent = '❌ Revisa los archivos e intenta de nuevo.'; statusEl.style.color = '#dc2626'; });
+    }
+    </script>
+</div>

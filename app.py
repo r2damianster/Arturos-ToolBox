@@ -31,7 +31,8 @@ def configurar_rutas(app):
         ('routes.ia_routes', 'ia_bp'),
         ('routes.oficios_routes', 'oficios_bp'),
         ('routes.perusall_routes', 'perusall_bp'),
-        ('routes.moodle_routes', 'moodle_bp')
+        ('routes.moodle_routes', 'moodle_bp'),
+        ('routes.titulacion_routes', 'titulacion_bp')
     ]
 
     for module_path, bp_name in blueprints:
