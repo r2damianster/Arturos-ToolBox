@@ -132,6 +132,7 @@
         </fieldset>
 
         <button type="button" class="submit-btn" onclick="titulacionGuardarRubrica()">💾 Guardar evaluación</button>
+        <button type="button" class="submit-btn" style="background:#16a34a;" onclick="titulacionGenerarDocumentos()">📥 Generar y descargar documentos</button>
         <span id="tit-paso4-status" style="margin-left:10px;font-size:0.85em;color:#64748b;"></span>
     </div>
 
@@ -512,14 +513,9 @@
         });
     }
 
-    function titulacionGuardarRubrica() {
-        const statusEl = document.getElementById('tit-paso4-status');
-        statusEl.textContent = '⏳ Guardando...';
-        statusEl.style.color = '#64748b';
-
+    function titulacionGuardarRubricaPromise() {
         const indicadores = Object.values(titulacionEstado.indicadores);
-
-        Promise.all([
+        return Promise.all([
             fetch(`/util/titulacion/evaluacion/${titulacionEstado.evaluacionId}/indicadores`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(indicadores)
@@ -528,14 +524,47 @@
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(titulacionEstado.observaciones)
             }),
-        ])
-        .then(async ([r1, r2]) => {
+        ]).then(async ([r1, r2]) => {
             const d1 = await r1.json(); const d2 = await r2.json();
             if (!r1.ok) throw new Error(d1.error);
             if (!r2.ok) throw new Error(d2.error);
-        })
-        .then(() => { statusEl.textContent = '✅ Evaluación guardada.'; statusEl.style.color = '#16a34a'; })
-        .catch(err => { statusEl.textContent = `❌ ${err.message}`; statusEl.style.color = '#dc2626'; });
+        });
+    }
+
+    function titulacionGuardarRubrica() {
+        const statusEl = document.getElementById('tit-paso4-status');
+        statusEl.textContent = '⏳ Guardando...';
+        statusEl.style.color = '#64748b';
+
+        titulacionGuardarRubricaPromise()
+            .then(() => { statusEl.textContent = '✅ Evaluación guardada.'; statusEl.style.color = '#16a34a'; })
+            .catch(err => { statusEl.textContent = `❌ ${err.message}`; statusEl.style.color = '#dc2626'; });
+    }
+
+    function titulacionGenerarDocumentos() {
+        const statusEl = document.getElementById('tit-paso4-status');
+        statusEl.textContent = '⏳ Guardando y generando documentos...';
+        statusEl.style.color = '#64748b';
+
+        titulacionGuardarRubricaPromise()
+            .then(() => fetch(`/util/titulacion/evaluacion/${titulacionEstado.evaluacionId}/generar`, { method: 'POST' }))
+            .then(async r => {
+                if (!r.ok) { const d = await r.json(); throw new Error(d.error); }
+                return r.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Evaluacion_${titulacionEstado.evaluacionId}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                statusEl.textContent = '✅ Documentos generados y descargados.';
+                statusEl.style.color = '#16a34a';
+            })
+            .catch(err => { statusEl.textContent = `❌ ${err.message}`; statusEl.style.color = '#dc2626'; });
     }
     </script>
 </div>

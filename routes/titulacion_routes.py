@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from logic.titulacion_logic import (
     listar_modalidades_con_rubricas,
     crear_evaluacion,
@@ -8,6 +8,7 @@ from logic.titulacion_logic import (
     obtener_detalle_evaluacion,
     guardar_indicadores,
     guardar_observaciones,
+    generar_documentos_zip,
 )
 
 titulacion_bp = Blueprint('titulacion', __name__)
@@ -105,5 +106,22 @@ def titulacion_guardar_observaciones(evaluacion_id):
         observaciones = request.get_json(silent=True) or []
         guardar_observaciones(evaluacion_id, observaciones)
         return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@titulacion_bp.route('/util/titulacion/evaluacion/<int:evaluacion_id>/generar', methods=['POST'])
+def titulacion_generar_documentos(evaluacion_id):
+    """Genera el Informe de Criterios Observados + la Rúbrica y los entrega en un .zip."""
+    try:
+        zip_buffer, slug_titulo = generar_documentos_zip(evaluacion_id)
+        return send_file(
+            zip_buffer,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=f"Evaluacion_{evaluacion_id}_{slug_titulo}.zip"
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500

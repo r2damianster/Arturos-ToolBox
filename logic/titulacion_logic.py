@@ -3,7 +3,10 @@ Lógica del wizard de Evaluación de Pares Lectores (Titulación).
 Fase 2: pasos 1-3 (datos del memo, modalidad/subtipo, subida de archivos), sin IA.
 """
 import os
+import io
+import zipfile
 import datetime
+import re
 from werkzeug.utils import secure_filename
 
 from logic.titulacion_db import (
@@ -13,6 +16,7 @@ from logic.titulacion_db import (
     get_rubrica,
     COMPONENTES_INFORME,
 )
+from logic.titulacion_docgen import generar_informe_docx, generar_rubrica_docx
 
 EXTENSIONES_PERMITIDAS = {'.pdf', '.docx', '.doc'}
 UPLOADS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "titulacion_uploads")
@@ -210,6 +214,38 @@ def guardar_indicadores(evaluacion_id, indicadores):
         ))
     conn.commit()
     conn.close()
+
+
+# ── Fase 4: generación de documentos ───────────────────────────────────────
+
+def generar_documentos_zip(evaluacion_id):
+    """Genera Informe + Rúbrica en .docx y los entrega en un .zip. Marca la evaluación como finalizada."""
+    evaluacion = obtener_detalle_evaluacion(evaluacion_id)
+    if not evaluacion:
+        raise ValueError("Evaluación no encontrada")
+    if not evaluacion.get('rubrica'):
+        raise ValueError("Falta seleccionar la modalidad/rúbrica antes de generar los documentos.")
+
+    informe_buffer = generar_informe_docx(evaluacion)
+    rubrica_buffer = generar_rubrica_docx(evaluacion)
+
+    slug_titulo = re.sub(r'[^A-Za-z0-9]+', '_', (evaluacion.get('titulo_trabajo') or 'evaluacion')).strip('_')[:40]
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(f"Informe_Criterios_Observados_{slug_titulo}.docx", informe_buffer.getvalue())
+        zf.writestr(f"Rubrica_{slug_titulo}.docx", rubrica_buffer.getvalue())
+    zip_buffer.seek(0)
+
+    conn = get_conn()
+    conn.execute(
+        "UPDATE evaluaciones SET estado = 'finalizada', actualizado_en = datetime('now') WHERE id = ?",
+        (evaluacion_id,)
+    )
+    conn.commit()
+    conn.close()
+
+    return zip_buffer, slug_titulo
 
 
 def guardar_observaciones(evaluacion_id, observaciones):
