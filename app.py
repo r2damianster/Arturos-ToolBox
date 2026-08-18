@@ -3,9 +3,11 @@ from dotenv import load_dotenv
 import os
 import logging
 from logic.db import init_db
+from logic.titulacion_db import init_titulacion_db
 
 # Inicializar base de datos de docentes
 init_db()
+init_titulacion_db()
 
 # Configurar logs para ver qué pasa en Render
 logging.basicConfig(level=logging.INFO)
