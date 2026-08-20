@@ -158,6 +158,7 @@ TRANSCRIPCIÓN:
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 max_tokens=1500,
+                reasoning_effort="low",
             )
             resumen = resp.choices[0].message.content.strip()
         except Exception as e:
@@ -260,6 +261,7 @@ TRANSCRIPCIÓN:
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
             max_tokens=600,
+            reasoning_effort="low",
         )
         raw = resp.choices[0].message.content.strip()
         if raw.startswith('```'):

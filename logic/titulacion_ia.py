@@ -80,8 +80,9 @@ def precargar_datos_memo(texto_memo):
                 {"role": "system", "content": "Eres un asistente que extrae datos estructurados de memorandos universitarios. Respondes solo JSON válido."},
                 {"role": "user", "content": f"{instruction}\n\nTEXTO DEL MEMO:\n{texto_memo}"},
             ],
-            max_tokens=400,
+            max_tokens=800,
             temperature=0.1,
+            reasoning_effort="low",
             response_format={"type": "json_object"},
         )
         datos = json.loads(completion.choices[0].message.content.strip())
@@ -116,8 +117,9 @@ def sugerir_comentario_criterio(criterio_texto, texto_trabajo):
                 {"role": "system", "content": "Eres un asistente que redacta observaciones breves para evaluadores universitarios."},
                 {"role": "user", "content": f"{instruction}\n\nFRAGMENTO DEL TRABAJO:\n{fragmento}"},
             ],
-            max_tokens=120,
+            max_tokens=300,
             temperature=0.3,
+            reasoning_effort="low",
         )
         return completion.choices[0].message.content.strip(), None
     except Exception as e:

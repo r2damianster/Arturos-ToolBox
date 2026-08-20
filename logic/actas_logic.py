@@ -62,7 +62,8 @@ class ActaTecnicaLogic:
                     {"role": "user",   "content": prompt}
                 ],
                 temperature=temperature,
-                max_tokens=max_tokens
+                max_tokens=max_tokens,
+                reasoning_effort="low"
             )
             return completion.choices[0].message.content.strip().replace('**', '').replace('*', '•')
         except Exception as e:

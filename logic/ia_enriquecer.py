@@ -200,6 +200,7 @@ def enriquecer_texto(contexto, texto_usuario, tono=None):
             ],
             max_tokens=config["max_tokens"],
             temperature=config["temperature"],
+            reasoning_effort="low",
         )
         resultado = completion.choices[0].message.content.strip()
         return resultado, None
