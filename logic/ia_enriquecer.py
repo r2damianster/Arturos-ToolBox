@@ -193,7 +193,7 @@ def enriquecer_texto(contexto, texto_usuario, tono=None):
     
     try:
         completion = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=[
                 {"role": "system", "content": config["role"]},
                 {"role": "user", "content": prompt},

@@ -14,7 +14,7 @@ from logic.titulacion_logic import UPLOADS_DIR
 from logic.titulacion_db import get_conn
 
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
-MODELO = "llama-3.3-70b-versatile"
+MODELO = "openai/gpt-oss-120b"
 
 CAMPOS_MEMO = [
     'numero_memo', 'fecha_memo', 'facultad', 'carrera',

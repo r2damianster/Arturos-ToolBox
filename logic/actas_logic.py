@@ -10,7 +10,7 @@ GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
 
 class ActaTecnicaLogic:
     def __init__(self):
-        self.model_id = "llama-3.3-70b-versatile"
+        self.model_id = "openai/gpt-oss-120b"
         try:
             self.client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
         except Exception as e:

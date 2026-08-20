@@ -5,7 +5,7 @@ from groq import Groq
 
 # Configuración de Groq
 _groq_client = Groq(api_key=os.environ.get('GROQ_API_KEY', '')) if os.environ.get('GROQ_API_KEY') else None
-_GROQ_MODEL_LLM = "llama-3.3-70b-versatile"
+_GROQ_MODEL_LLM = "openai/gpt-oss-120b"
 _GROQ_MODEL_WHISPER = "whisper-large-v3"
 
 
