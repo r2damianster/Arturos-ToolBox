@@ -7,27 +7,6 @@
         </div>
     </div>
 
-    <!-- ═══ IA Config ═══ -->
-    <fieldset style="margin-bottom:20px;">
-        <legend>🤖 Configuración IA</legend>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;">
-            <div>
-                <label>Intervalo entre usos de IA (minutos):</label>
-                <input type="number" id="ia_cooldown" min="1" max="120" value="10"
-                    style="padding:8px;border:1px solid #ddd;border-radius:6px;width:100%;">
-                <span class="help-text" style="font-size:0.8rem;color:#64748b;">
-                    Tiempo mínimo entre cada enriquecimiento con IA.
-                </span>
-            </div>
-            <div>
-                <button onclick="guardarCooldown()" style="padding:8px 16px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;">
-                    💾 Guardar
-                </button>
-                <span id="ia-config-status" style="margin-left:8px;font-size:0.8rem;color:#64748b;"></span>
-            </div>
-        </div>
-    </fieldset>
-
     <!-- ═══ Docentes ═══ -->
     <fieldset>
         <legend>Agregar Docente</legend>
@@ -160,22 +139,4 @@ function deleteDocente(id) {
         .then(res => { alert(res.message); cargarDocentes(); });
 }
 
-// ── IA Cooldown Config ──
-function guardarCooldown() {
-    const mins = parseInt(document.getElementById('ia_cooldown').value);
-    if (mins < 1 || mins > 120) return alert('El intervalo debe ser entre 1 y 120 minutos');
-
-    fetch('/util/ia_config', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ cooldown_minutes: mins })
-    })
-    .then(r => r.json())
-    .then(res => {
-        document.getElementById('ia-config-status').textContent = '✅ ' + res.message;
-    })
-    .catch(err => {
-        document.getElementById('ia-config-status').textContent = '❌ Error';
-    });
-}
 </script>

@@ -1,49 +1,32 @@
 """
-Servicio de enriquecimiento de texto con IA (Groq / Llama).
+Servicio de enriquecimiento de texto con IA (Groq).
 No genera documentos — solo mejora el texto que el usuario escribe en los formularios.
+
+Sin límite de usos ni de tokens de salida: se deja que el modelo responda
+libremente. El único límite real es la cuota de Groq — cuando la API la
+corta, formatear_error_ia() lo traduce a un mensaje legible.
 """
 import os
-import time
-import json
-from groq import Groq
+import datetime
+from groq import Groq, RateLimitError
 
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
 
-# ── Rate limiting simple (en memoria) ─────────────────────────────
-# {ip: timestamp_ultimo_uso}
-_rate_limit_store = {}
 
-# Intervalo por defecto: 10 minutos (600 segundos) — mutable
-_cooldown_seconds = 600
-
-def set_cooldown_seconds(secs):
-    """Configura el cooldown global (en segundos)."""
-    global _cooldown_seconds
-    _cooldown_seconds = max(10, min(secs, 7200))  # entre 10s y 2h
-
-def get_cooldown_seconds():
-    """Lee el cooldown configurado (en segundos)."""
-    return _cooldown_seconds
-
-
-def check_rate_limit(identifier="global"):
-    """
-    Verifica si el identificador puede usar la IA.
-    Retorna (allowed: bool, remaining_seconds: int).
-    """
-    cooldown = get_cooldown_seconds()
-    now = time.time()
-    last = _rate_limit_store.get(identifier, 0)
-    elapsed = now - last
-    if elapsed < cooldown:
-        remaining = int(cooldown - elapsed)
-        return False, remaining
-    return True, 0
-
-
-def record_usage(identifier="global"):
-    """Registra el uso de IA para un identificador."""
-    _rate_limit_store[identifier] = time.time()
+def formatear_error_ia(e):
+    """Traduce una excepción de Groq a un mensaje legible.
+    Si es límite de cuota (429), informa hasta cuándo hay que esperar."""
+    if isinstance(e, RateLimitError):
+        reset_en_segundos = None
+        try:
+            reset_en_segundos = float(e.response.headers.get('retry-after', ''))
+        except (AttributeError, ValueError, TypeError):
+            reset_en_segundos = None
+        if reset_en_segundos:
+            hora_reset = datetime.datetime.now() + datetime.timedelta(seconds=reset_en_segundos)
+            return f"Se acabaron los tokens hasta las {hora_reset.strftime('%H:%M')}."
+        return "Se acabaron los tokens por ahora. Intenta más tarde."
+    return f"Error de IA: {str(e)}"
 
 
 # ── Prompts por contexto ──────────────────────────────────────────
@@ -56,7 +39,6 @@ PROMPTS = {
             "REGLAS: Sé breve. Corrige ortografía y formaliza el vocabulario. No agregues contenido inventado.\n"
             "FORMATO: Lista con viñetas (•). Máximo 200 palabras."
         ),
-        "max_tokens": 200,
         "temperature": 0.2,
     },
     "acta_desarrollo": {
@@ -67,7 +49,6 @@ PROMPTS = {
             "No inventes hechos, solo expande y mejora la redacción.\n"
             "FORMATO: 2-3 párrafos narrativos. Máximo 400 palabras."
         ),
-        "max_tokens": 400,
         "temperature": 0.4,
     },
     "acta_compromisos": {
@@ -77,7 +58,6 @@ PROMPTS = {
             "REGLAS: Sé directo. Mantén la esencia sin añadir relleno. Corrige coherencia y ortografía.\n"
             "FORMATO: Lista con viñetas (•). Máximo 200 palabras."
         ),
-        "max_tokens": 200,
         "temperature": 0.2,
     },
     "convocatoria_asunto": {
@@ -87,7 +67,6 @@ PROMPTS = {
             "REGLAS: Hazlo claro, formal y conciso. No cambies el significado original.\n"
             "FORMATO: Una sola línea. Máximo 120 caracteres."
         ),
-        "max_tokens": 60,
         "temperature": 0.3,
     },
     "convocatoria_descripcion": {
@@ -97,7 +76,6 @@ PROMPTS = {
             "REGLAS: Formaliza el lenguaje, mejora la coherencia, sé preciso. No inventes información.\n"
             "FORMATO: 1-2 párrafos breves. Máximo 250 palabras."
         ),
-        "max_tokens": 250,
         "temperature": 0.3,
     },
     "oficio_asunto": {
@@ -107,7 +85,6 @@ PROMPTS = {
             "REGLAS: Hazlo claro, formal y conciso. No cambies el significado original.\n"
             "FORMATO: Una sola línea. Máximo 120 caracteres."
         ),
-        "max_tokens": 60,
         "temperature": 0.3,
     },
     "oficio_cuerpo": {
@@ -118,7 +95,6 @@ PROMPTS = {
             "Usa estructura: saludo institucional → exposición → solicitud/despedida formal.\n"
             "FORMATO: 2-4 párrafos. Máximo 350 palabras."
         ),
-        "max_tokens": 350,
         "temperature": 0.4,
     },
     "convocatoria_descripcion_generar": {
@@ -129,7 +105,6 @@ PROMPTS = {
             "propósito de la convocatoria. No inventes fechas, nombres ni datos específicos.\n"
             "FORMATO: 1-2 párrafos. Máximo 200 palabras."
         ),
-        "max_tokens": 250,
         "temperature": 0.5,
     },
     "oficio_cuerpo_generar": {
@@ -140,7 +115,6 @@ PROMPTS = {
             "solicitud o comunicación → despedida formal. No inventes nombres ni datos que no estén en el asunto.\n"
             "FORMATO: 2-3 párrafos. Máximo 300 palabras."
         ),
-        "max_tokens": 350,
         "temperature": 0.5,
     },
 }
@@ -158,7 +132,7 @@ _CONTEXTOS_CON_TONO = {"oficio_cuerpo", "oficio_cuerpo_generar"}
 
 def enriquecer_texto(contexto, texto_usuario, tono=None):
     """
-    Envía texto a Groq (Llama) para enriquecerlo según el contexto.
+    Envía texto a Groq para enriquecerlo según el contexto.
 
     Args:
         contexto: clave del prompt (ej: 'acta_aspectos', 'convocatoria_asunto')
@@ -190,7 +164,7 @@ def enriquecer_texto(contexto, texto_usuario, tono=None):
         f"{instruction}\n\n"
         f"TEXTO DEL USUARIO:\n{texto_usuario}"
     )
-    
+
     try:
         completion = client.chat.completions.create(
             model="openai/gpt-oss-120b",
@@ -198,11 +172,10 @@ def enriquecer_texto(contexto, texto_usuario, tono=None):
                 {"role": "system", "content": config["role"]},
                 {"role": "user", "content": prompt},
             ],
-            max_tokens=config["max_tokens"],
             temperature=config["temperature"],
             reasoning_effort="low",
         )
         resultado = completion.choices[0].message.content.strip()
         return resultado, None
     except Exception as e:
-        return None, f"Error de IA: {str(e)}"
+        return None, formatear_error_ia(e)

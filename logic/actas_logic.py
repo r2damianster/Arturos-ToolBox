@@ -5,6 +5,7 @@ from docxtpl import DocxTemplate, RichText
 from docx import Document as DocxDocument
 from docx.shared import Inches
 from groq import Groq
+from logic.ia_enriquecer import formatear_error_ia
 
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
 
@@ -30,7 +31,7 @@ class ActaTecnicaLogic:
                 "REGLAS: No expandas el texto innecesariamente. Solo corrige ortografía y formaliza levemente el vocabulario.\n"
                 "FORMATO: Presenta cada punto precedido por una viñeta (•). No redactes párrafos largos."
             )
-            max_tokens, temperature = 200, 0.2
+            temperature = 0.2
         elif tipo == "compromisos":
             seccion_desc = "Decisiones y compromisos finales"
             instruccion = (
@@ -38,7 +39,7 @@ class ActaTecnicaLogic:
                 "REGLAS: Sé directo y breve. Mantén la esencia de la nota original sin añadir relleno.\n"
                 "FORMATO: Presenta cada compromiso precedido por una viñeta (•). Corrige coherencia y ortografía."
             )
-            max_tokens, temperature = 200, 0.2
+            temperature = 0.2
         else:
             seccion_desc = "Desarrollo y deliberaciones de la reunión"
             instruccion = (
@@ -46,7 +47,7 @@ class ActaTecnicaLogic:
                 "REGLAS: Aquí SÍ puedes expandirte. Conecta los puntos del orden del día con conectores lógicos.\n"
                 "FORMATO: Redacta en párrafos narrativos. Usa tono solemne (ej: 'asimismo', 'se procedió a')."
             )
-            max_tokens, temperature = 600, 0.5
+            temperature = 0.5
 
         prompt = (
             f"Actúa como un Secretario Académico universitario de alto nivel.\n\n"
@@ -62,12 +63,11 @@ class ActaTecnicaLogic:
                     {"role": "user",   "content": prompt}
                 ],
                 temperature=temperature,
-                max_tokens=max_tokens,
                 reasoning_effort="low"
             )
             return completion.choices[0].message.content.strip().replace('**', '').replace('*', '•')
         except Exception as e:
-            return f"Error en la generación de texto: {str(e)}. Notas: {notas_usuario}"
+            return f"{formatear_error_ia(e)} (notas originales: {notas_usuario})"
 
     def formatear_fecha(self, fecha_str):
         try:

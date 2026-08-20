@@ -1,6 +1,6 @@
 """
 Fase 5: precarga de datos del memo por IA + sugerencias de comentario por criterio.
-Reutiliza el motor Groq y el rate-limit compartido de logic.ia_enriquecer.
+Sin límite de usos: la única restricción real es la cuota de Groq (ver formatear_error_ia).
 Toda sugerencia de IA queda como texto editable — nunca se autoaplica.
 """
 import os
@@ -12,6 +12,7 @@ from groq import Groq
 
 from logic.titulacion_logic import UPLOADS_DIR
 from logic.titulacion_db import get_conn
+from logic.ia_enriquecer import formatear_error_ia
 
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
 MODELO = "openai/gpt-oss-120b"
@@ -80,7 +81,6 @@ def precargar_datos_memo(texto_memo):
                 {"role": "system", "content": "Eres un asistente que extrae datos estructurados de memorandos universitarios. Respondes solo JSON válido."},
                 {"role": "user", "content": f"{instruction}\n\nTEXTO DEL MEMO:\n{texto_memo}"},
             ],
-            max_tokens=800,
             temperature=0.1,
             reasoning_effort="low",
             response_format={"type": "json_object"},
@@ -90,7 +90,7 @@ def precargar_datos_memo(texto_memo):
     except json.JSONDecodeError:
         return None, "La IA no devolvió datos válidos. Completa el formulario manualmente."
     except Exception as e:
-        return None, f"Error de IA: {str(e)}"
+        return None, formatear_error_ia(e)
 
 
 def sugerir_comentario_criterio(criterio_texto, texto_trabajo):
@@ -117,10 +117,9 @@ def sugerir_comentario_criterio(criterio_texto, texto_trabajo):
                 {"role": "system", "content": "Eres un asistente que redacta observaciones breves para evaluadores universitarios."},
                 {"role": "user", "content": f"{instruction}\n\nFRAGMENTO DEL TRABAJO:\n{fragmento}"},
             ],
-            max_tokens=300,
             temperature=0.3,
             reasoning_effort="low",
         )
         return completion.choices[0].message.content.strip(), None
     except Exception as e:
-        return None, f"Error de IA: {str(e)}"
+        return None, formatear_error_ia(e)

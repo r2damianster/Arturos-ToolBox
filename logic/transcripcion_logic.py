@@ -2,6 +2,7 @@ import os
 import io
 import json as _json
 from groq import Groq
+from logic.ia_enriquecer import formatear_error_ia
 
 # Configuración de Groq
 _groq_client = Groq(api_key=os.environ.get('GROQ_API_KEY', '')) if os.environ.get('GROQ_API_KEY') else None
@@ -157,12 +158,11 @@ TRANSCRIPCIÓN:
                 model=_GROQ_MODEL_LLM,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
-                max_tokens=1500,
                 reasoning_effort="low",
             )
             resumen = resp.choices[0].message.content.strip()
         except Exception as e:
-            resumen = f"[Resumen no disponible: {str(e)}]"
+            resumen = f"[Resumen no disponible: {formatear_error_ia(e)}]"
 
     return {
         "resumen_estructurado": resumen,
@@ -260,7 +260,6 @@ TRANSCRIPCIÓN:
             model=_GROQ_MODEL_LLM,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
-            max_tokens=600,
             reasoning_effort="low",
         )
         raw = resp.choices[0].message.content.strip()
@@ -270,7 +269,7 @@ TRANSCRIPCIÓN:
         data = _json.loads(raw)
     except Exception as e:
         data = {
-            "aspectos": f"Error al procesar: {str(e)}",
+            "aspectos": f"Error al procesar: {formatear_error_ia(e)}",
             "desarrollo": "No se pudo extraer el desarrollo.",
             "compromisos": "No disponible.",
         }
