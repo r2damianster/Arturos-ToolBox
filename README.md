@@ -15,6 +15,7 @@ Aplicación web Flask para la gestión de documentos académicos de la **Univers
   - [👨‍🏫 Convocatoria a Docentes](#-convocatoria-a-docentes)
   - [🎓 Convocatoria a Estudiantes](#-convocatoria-a-estudiantes)
   - [📦 Documentos PAT Maestría](#-documentos-pat-maestría)
+  - [🏅 Evaluaciones de Titulación](#-evaluaciones-de-titulación)
   - [🎙️ Transcripción de Audio](#-transcripción-de-audio)
   - [📉 Informe de Notas](#-informe-de-notas)
   - [🛠️ Utilidades](#-utilidades)
@@ -100,6 +101,12 @@ Genera convocatorias para estudiantes con:
 Genera documentos del proceso de Patrón para la Maestría:
 - PAT-03, PAT-04, PAT-05, PAT-06
 - Soporte para diferentes líneas de investigación
+
+### 🏅 Evaluaciones de Titulación
+Genera rúbricas de evaluación para los procesos de titulación:
+- **Rúbricas 2026** actualizadas con escala de calificación sobre 5.00 puntos.
+- Generación de documentos Word para Artículo Publicado, Artículo NO Publicado, y Portafolio TEFL.
+- Manteniendo fielmente el formato y los descriptores cualitativos originales.
 
 ### 🎙️ Transcripción de Audio
 Transcribe archivos de audio a texto usando **Groq Whisper** (`whisper-large-v3`, gratuito).

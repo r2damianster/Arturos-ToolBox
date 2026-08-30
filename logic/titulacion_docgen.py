@@ -153,41 +153,23 @@ def generar_rubrica_docx(evaluacion):
         if not p_text.strip():
             continue
 
-        if "Estudiante:" in p_text or "ESTUDIANTE:" in p_text:
-            for run in p.runs:
-                if "_" in run.text:
-                    run.text = " " + estudiante
-                    break
-        elif "Evaluador:" in p_text or "MIEMBRO DEL TRIBUNAL:" in p_text or "Tribunal:" in p_text:
-            for run in p.runs:
-                if "_" in run.text:
-                    run.text = " " + evaluador
-                    break
+        if "Estudiante:" in p_text or "ESTUDIANTE:" in p_text or "NOMBRE DEL/LA ESTUDIANTE:" in p_text:
+            p.text = f"NOMBRE DEL/LA ESTUDIANTE: {estudiante}"
+        elif "Evaluador:" in p_text or "MIEMBRO DEL TRIBUNAL:" in p_text or "Tribunal:" in p_text or "NOMBRE DEL MIEMBRO DEL TRIBUNAL:" in p_text:
+            p.text = f"NOMBRE DEL MIEMBRO DEL TRIBUNAL: {evaluador}"
         elif "Tutor:" in p_text or "TUTOR:" in p_text:
-            for run in p.runs:
-                if "_" in run.text:
-                    run.text = " " + tutor
-                    break
+            p.text = f"TUTOR: {tutor}"
         elif "Tema:" in p_text or "TEMA:" in p_text or "TITULO DEL ARTICULO" in p_text:
-            for run in p.runs:
-                if "_" in run.text:
-                    run.text = " " + tema
-                    break
+            p.text = f"TÍTULO DEL ARTÍCULO: {tema}"
+        elif "FECHA DE ENTREGA:" in p_text:
+            p.text = f"FECHA DE ENTREGA: {fecha_txt}"
         elif "Fecha:" in p_text or "FECHA:" in p_text:
             has_calificacion = "Calificaci" in p_text or "Total" in p_text
             if has_calificacion:
                 p.text = f"Fecha: {fecha_txt}                 Calificación Total: {puntaje_formateado} / {escala_total}"
                 p.runs[0].bold = True
             else:
-                for run in p.runs:
-                    if "_" in run.text:
-                        run.text = " " + fecha_txt
-                        break
-        elif "FECHA DE ENTREGA:" in p_text:
-            for run in p.runs:
-                if "_" in run.text:
-                    run.text = " " + fecha_txt
-                    break
+                p.text = f"Fecha: {fecha_txt}"
 
     # 3. Rellenar las tablas de la plantilla
     if doc.tables:
@@ -233,9 +215,6 @@ def generar_rubrica_docx(evaluacion):
             elif escala in ('niveles_4', 'niveles_especial'):
                 num_cols = len(row.cells)
                 if num_cols >= 8:
-                    for c in range(2, 6):
-                        row.cells[c].text = ""
-
                     col_x = None
                     if respuesta == '0':
                         col_x = 2
@@ -247,8 +226,13 @@ def generar_rubrica_docx(evaluacion):
                         col_x = 5
 
                     if col_x is not None:
-                        row.cells[col_x].text = 'X'
-                        row.cells[col_x].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        cell = row.cells[col_x]
+                        orig_text = cell.text.strip()
+                        if not orig_text.startswith("[X]"):
+                            cell.text = "[X] " + orig_text
+                            for p in cell.paragraphs:
+                                for r in p.runs:
+                                    r.bold = True
 
                     # Calif. (Col 6)
                     cell_score = row.cells[6]

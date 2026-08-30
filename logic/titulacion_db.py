@@ -149,14 +149,15 @@ def _seed_catalogo(conn):
         """INSERT OR REPLACE INTO rubricas (modalidad_id, slug, subtipo, plantilla_docx, schema_json)
            VALUES (?, ?, ?, ?, ?)""",
         (articulo_id, "articulo_no_publicado", "no_publicado",
-         "2.-ANEXO 2 RUBRICA PARA ARTICULO Y CAPITULOS DE LIBROS -NO- PUBLICADOS ESCRITO.docx",
+         "Rúbrica Trabajo Escrito Artículo NO Publicado 2026.docx",
          json.dumps(_schema_articulo_no_publicado(), ensure_ascii=False))
     )
+    conn.execute("DELETE FROM rubricas WHERE slug = 'articulo_published'")
     conn.execute(
         """INSERT OR REPLACE INTO rubricas (modalidad_id, slug, subtipo, plantilla_docx, schema_json)
            VALUES (?, ?, ?, ?, ?)""",
-        (articulo_id, "articulo_published", "publicado",
-         "3.-ANEXO 2 RUBRICA PARA ARTICULO Y CAPITULOS DE LIBROS PUBLICADOS ESCRITO .docx",
+        (articulo_id, "articulo_publicado", "publicado",
+         "Rúbrica Trabajo Escrito Artículo Publicado 2026.docx",
          json.dumps(_schema_articulo_publicado(), ensure_ascii=False))
     )
     conn.commit()
@@ -190,34 +191,44 @@ def _schema_tefl():
 
 def _schema_articulo_no_publicado():
     return {
-        "escala_total": 10,
+        "escala_total": 5,
         "tabla_total_idx": 0,
         "tablas": [
             {
                 "nombre": "Rúbrica — Artículo/Capítulo NO publicado",
                 "escala": "niveles_4",
+                "header_rows": 2,
                 "niveles": NIVELES_4,
                 "criterios": [
                     {
-                        "no": 1, "texto": "Título y resumen", "peso": 1.00,
+                        "no": 1, "texto": "Título y resumen", "peso": 0.25,
                         "descriptores": {
-                            "0": "El título no describe el proyecto de investigación/ intervención /implementación ejecutada.\n\nEl resumen no presenta los elementos objetivo, metodología, resultados y conclusiones.",
-                            "35": "El título describe escasamente el proyecto de investigación/ intervención /implementación ejecutada.\n\nEl resumen presenta escasamente los elementos objetivo, metodología, resultados y conclusiones.",
-                            "70": "El título describe de manera aceptable el proyecto de investigación/ intervención /implementación ejecutada.\n\nEl resumen presenta de manera aceptable los elementos objetivo, metodología, resultados y conclusiones.",
-                            "100": "El título describe bien el proyecto de investigación/ intervención /implementación ejecutada.\n\nEl resumen presenta adecuadamente los elementos objetivo, metodología, resultados y conclusiones.",
+                            "0": "El título no describe el proyecto de investigación/ intervención /implementación ejecutada.  El resumen no presenta los elementos objetivo, metodología, resultados y conclusiones.",
+                            "35": "El título describe escasamente el proyecto de investigación/ intervención /implementación ejecutada.  El resumen presenta escasamente los elementos objetivo, metodología, resultados y conclusiones.",
+                            "70": "El título describe de manera aceptable el proyecto de investigación/ intervención /implementación ejecutada.  El resumen presenta de manera aceptable los elementos objetivo, metodología, resultados y conclusiones.",
+                            "100": "El título describe muy bien el proyecto de investigación/ intervención /implementación ejecutada.   El resumen presenta adecuadamente los elementos objetivo, metodología, resultados y conclusiones.",
                         },
                     },
                     {
-                        "no": 2, "texto": "Introducción", "peso": 1.50,
+                        "no": 2, "texto": "Introducción. Problemática para investigar y contextualización.", "peso": 1.00,
                         "descriptores": {
                             "0": "La introducción no presenta la problemática estudiada, ni las motivaciones de los autores. Presenta otros diferentes a los generalmente utilizados.",
                             "35": "La introducción presenta escasamente la problemática estudiada, motivaciones de los autores, el contexto y otros elementos utilizados.",
-                            "70": "La introducción presenta de manera aceptable la problemática estudiada, motivaciones de los autores, el contexto y otros elementos utilizados.",
-                            "100": "La introducción presenta la problemática estudiada, motivaciones de los autores, el contexto y otros elementos generalmente utilizados.",
+                            "70": "La introducción presenta de manera aceptable la problemática estudiada, conceptos fundamentales, motivaciones de los autores, el contexto, preguntas de investigación y otros elementos utilizados.",
+                            "100": "La introducción presenta la problemática estudiada, conceptos fundamentales, motivaciones de los autores, el contexto, preguntas de investigación, objetivo y otros elementos generalmente utilizados.",
                         },
                     },
                     {
-                        "no": 3, "texto": "Metodología", "peso": 2.50,
+                        "no": 3, "texto": "Marco teórico o revisión de literatura", "peso": 0.50,
+                        "descriptores": {
+                            "0": "El marco teórico o revisión de literatura no es actualizada ni pertinente. No ha sido redactada adecuadamente y presenta fallas en las citas bibliográficas. Aplica errores de Norma APA 7 Edición.",
+                            "35": "El marco teórico o revisión de literatura es actualizada, pertinente, pero no ha sido redactada adecuadamente y presenta fallas en las citas bibliográficas. Aplica errores de Norma APA 7 Edición.",
+                            "70": "El marco teórico o revisión de literatura es actualizada, pertinente, pero no ha sido redactada adecuadamente. Las citas son realizadas correctamente. Aplica correctamente las normas APA 7 Edición.",
+                            "100": "El marco teórico o revisión de literatura es actualizada, pertinente y redactada adecuadamente. Las citas son realizadas correctamente.   Aplica correctamente las normas APA 7 Edición.",
+                        },
+                    },
+                    {
+                        "no": 4, "texto": "Metodología", "peso": 0.50,
                         "descriptores": {
                             "0": "La metodología no es apropiada para el tipo de manuscrito. No se describen correctamente la muestra o participantes y los instrumentos utilizados no son pertinentes.",
                             "35": "La metodología es presentada de forma apropiada para el tipo de manuscrito. No se describen correctamente la muestra o participantes y los instrumentos utilizados.",
@@ -226,30 +237,30 @@ def _schema_articulo_no_publicado():
                         },
                     },
                     {
-                        "no": 4, "texto": "Desarrollo (body)", "peso": 2.00,
+                        "no": 5, "texto": "Resultados (artículos originales, estudios de casos).", "peso": 1.00,
                         "descriptores": {
-                            "0": "La revisión literaria no es actualizada ni pertinente.\nNo ha sido redactada adecuadamente y presenta fallas en las citas bibliográficas.\nAplica errores de Norma APA 7 Edición.",
-                            "35": "La revisión literaria es actualizada, pertinente, pero no ha sido redactada adecuadamente y presenta fallas en las citas bibliográficas.\nAplica errores de Norma APA 7 Edición.",
-                            "70": "La revisión literaria es actualizada, pertinente, pero no ha sido redactada adecuadamente. Las citas son realizadas correctamente.\nAplica correctamente las normas APA 7 Edición.",
-                            "100": "La revisión literaria es actualizada, pertinente y redactada adecuadamente. Las citas son realizadas correctamente.\nAplica correctamente las normas APA 7 Edición.",
+                            "0": "Los resultados no son presentados de manera adecuada y no se apoyada con figuras, tablas, gráficos estadísticos, esquemas, etc.",
+                            "35": "Los resultados son presentados de manera poco clara e insuficiente. No se apoya con figuras, tablas, gráficos estadísticos, esquemas, etc.",
+                            "70": "Los resultados son presentados de manera adecuada y apoyada con figuras, tablas, gráficos estadísticos, esquemas, etc.",
+                            "100": "Los resultados son presentados de manera adecuada y apoyada con figuras, tablas, gráficos estadísticos, esquemas, etc.",
                         },
                     },
                     {
-                        "no": 5, "texto": "Discusión y conclusiones o reflexiones finales", "peso": 2.00,
+                        "no": 6, "texto": "Discusión", "peso": 1.00,
                         "descriptores": {
-                            "0": "La argumentación no se elabora de manera clara y no se hace contraste de los hallazgos con las teorías. No se añade información respeto a los hallazgos.\n\nLa conclusión o reflexiones finales no contrastan a los objetivos propuestos. No es contundente y no hace uso eficiente del texto.",
-                            "35": "La argumentación se elabora de manera poco clara, pero si elabora contrastes de los hallazgos con las teorías. Se añade poca información respeto a los hallazgos.\nLa conclusión o reflexiones finales hacen poco contraste a los objetivos propuestos. Es poco contundente.",
-                            "70": "La argumentación se elabora de manera clara, pero presenta escaso contrastes de los hallazgos con las teorías. Se añade poca información respeto a los hallazgos.\n\nLa conclusión o reflexiones finales contrastan escasamente a los objetivos propuestos. Es contundente.",
-                            "100": "La argumentación se elabora de manera clara y con contrastes de los hallazgos con las teorías. Se añade información respeto a los hallazgos.\n\nLa conclusión o reflexiones finales contrastan a los objetivos propuestos. Es contundente y hace uso eficiente del texto.",
+                            "0": "La discusión no se elabora de manera clara y no se hace contraste de los hallazgos con las teorías. No se añade información respeto a los hallazgos.",
+                            "35": "La discusión se elabora de manera poco clara, pero si elabora contrastes de los hallazgos con las teorías. Se añade poca información respeto a los hallazgos.",
+                            "70": "La discusión se elabora de manera clara, pero presenta escaso contrastes de los hallazgos con las teorías. Se añade poca información respeto a los hallazgos.",
+                            "100": "La discusión se elabora de manera clara y con contrastes de los hallazgos con las teorías. Se añade información respeto a los hallazgos.",
                         },
                     },
                     {
-                        "no": 6, "texto": "Cohesión, coherencia y estilo", "peso": 1.00,
+                        "no": 7, "texto": "Conclusiones", "peso": 0.75,
                         "descriptores": {
-                            "0": "No apropiados para el tipo de manuscrito",
-                            "35": "Débil para el tipo de manuscrito",
-                            "70": "Aceptable para el tipo de manuscrito",
-                            "100": "Muy apropiados para el tipo de manuscrito",
+                            "0": "La conclusión o reflexiones finales no contrastan a los objetivos propuestos. No es contundente y no hace uso eficiente del texto.",
+                            "35": "La conclusión o reflexiones finales hacen poco contraste a los objetivos propuestos. Es poco contundente.",
+                            "70": "La conclusión o reflexiones finales contrastan escasamente a los objetivos propuestos. Es contundente.",
+                            "100": "La conclusión o reflexiones finales contrastan a los objetivos propuestos. Es contundente y hace uso eficiente del texto.",
                         },
                     },
                 ],
@@ -260,21 +271,22 @@ def _schema_articulo_no_publicado():
 
 def _schema_articulo_publicado():
     return {
-        "escala_total": 10,
+        "escala_total": 5,
         "tabla_total_idx": 0,
         "tablas": [
             {
                 "nombre": "Rúbrica — Artículo/Capítulo publicado",
                 "escala": "niveles_especial",
+                "header_rows": 2,
                 "criterios": [
                     {
-                        "no": 1, "texto": "Artículo científico o capítulo de libro publicado", "peso": 7,
-                        "niveles": {"0": "N/A", "35": "N/A", "70": "N/A", "100": "Publicado"},
+                        "no": 1, "texto": "Articulo científico o capítulo de libro publicado", "peso": 3,
+                        "niveles": {"0": "N/A", "35": "N/A", "90": "N/A", "100": "Publicado"},
                         "guia": "La carta de aceptación para publicación de la revista científica o editorial puede ser usada para evidenciar el requisito para aplicar este procedimiento.",
                     },
                     {
-                        "no": 2, "texto": "Evidencias del proceso de evaluación de los lectores pares ciegos o editores de la revista científica o editorial", "peso": 3,
-                        "niveles": {"0": "N/A", "35": "N/A", "70": "1 lector par ciego", "100": "2 lectores pares ciegos"},
+                        "no": 2, "texto": "Evidencias del proceso de evaluación de los lectores pares ciegos o editores de la revista científica o editorial", "peso": 2,
+                        "niveles": {"0": "N/A", "35": "N/A", "90": "Evidencias del proceso según la revista seleccionada", "100": "Evidencias del proceso según la revista seleccionada Carta de aceptación para publicación"},
                         "guia": "Se acepta como evidencia los correos electrónicos indicando las mejoras solicitadas por editores o revistas científicas.",
                     },
                 ],
