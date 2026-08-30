@@ -128,7 +128,7 @@
         <div style="position:sticky;top:0;background:#fff;z-index:5;padding:10px 0;border-bottom:1px solid #e2e8f0;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
             <div style="font-size:0.85em;color:#64748b;">Evaluación #<span id="tit-eval-id"></span></div>
             <div style="font-size:1.1em;font-weight:700;color:#1e293b;">
-                Calificación Total: <span id="tit-puntaje-total" style="color:#6366f1;">0.00</span> / 10
+                Calificación Total: <span id="tit-puntaje-total" style="color:#6366f1;">0.00</span> / <span id="tit-escala-total">10</span>
             </div>
         </div>
 
@@ -433,6 +433,8 @@
             .then(d => {
                 titulacionEstado.schema = d.rubrica.schema;
                 titulacionEstado.observaciones = d.observaciones;
+
+                document.getElementById('tit-escala-total').textContent = d.rubrica.schema.escala_total || 10;
 
                 titulacionEstado.indicadores = {};
                 (d.indicadores || []).forEach(ind => {

@@ -125,38 +125,37 @@ def init_titulacion_db():
 
 
 def _seed_catalogo(conn):
-    """Carga modalidades + rúbricas iniciales (TEFL, Artículo publicado/no publicado) si no existen."""
-    count = conn.execute("SELECT COUNT(*) FROM modalidades_titulacion").fetchone()[0]
-    if count > 0:
-        return
-
-    cur = conn.execute(
-        "INSERT INTO modalidades_titulacion (slug, nombre, requiere_subtipo) VALUES (?, ?, ?)",
+    """Carga o actualiza modalidades + rúbricas iniciales (TEFL, Artículo publicado/no publicado)."""
+    conn.execute(
+        "INSERT OR IGNORE INTO modalidades_titulacion (slug, nombre, requiere_subtipo) VALUES (?, ?, ?)",
         ("tefl", "TEFL Application Process", 0)
     )
-    tefl_id = cur.lastrowid
-
-    cur = conn.execute(
-        "INSERT INTO modalidades_titulacion (slug, nombre, requiere_subtipo) VALUES (?, ?, ?)",
-        ("articulo", "Artículo Científico / Capítulo de Libro", 1)
-    )
-    articulo_id = cur.lastrowid
+    tefl_id = conn.execute("SELECT id FROM modalidades_titulacion WHERE slug = 'tefl'").fetchone()[0]
 
     conn.execute(
-        "INSERT INTO rubricas (modalidad_id, slug, subtipo, plantilla_docx, schema_json) VALUES (?, ?, ?, ?, ?)",
+        "INSERT OR IGNORE INTO modalidades_titulacion (slug, nombre, requiere_subtipo) VALUES (?, ?, ?)",
+        ("articulo", "Artículo Científico / Capítulo de Libro", 1)
+    )
+    articulo_id = conn.execute("SELECT id FROM modalidades_titulacion WHERE slug = 'articulo'").fetchone()[0]
+
+    conn.execute(
+        """INSERT OR REPLACE INTO rubricas (modalidad_id, slug, subtipo, plantilla_docx, schema_json)
+           VALUES (?, ?, ?, ?, ?)""",
         (tefl_id, "tefl_completa", None,
-         "PAT-04-F-001-RRA-2019-revisado...TEFL Application Process PINE 2024 1 Con Rubricas Completo.docx",
+         "Rubrica Trabajo Escrito General Portafolio TEFL 2026 1.docx",
          json.dumps(_schema_tefl(), ensure_ascii=False))
     )
     conn.execute(
-        "INSERT INTO rubricas (modalidad_id, slug, subtipo, plantilla_docx, schema_json) VALUES (?, ?, ?, ?, ?)",
+        """INSERT OR REPLACE INTO rubricas (modalidad_id, slug, subtipo, plantilla_docx, schema_json)
+           VALUES (?, ?, ?, ?, ?)""",
         (articulo_id, "articulo_no_publicado", "no_publicado",
          "2.-ANEXO 2 RUBRICA PARA ARTICULO Y CAPITULOS DE LIBROS -NO- PUBLICADOS ESCRITO.docx",
          json.dumps(_schema_articulo_no_publicado(), ensure_ascii=False))
     )
     conn.execute(
-        "INSERT INTO rubricas (modalidad_id, slug, subtipo, plantilla_docx, schema_json) VALUES (?, ?, ?, ?, ?)",
-        (articulo_id, "articulo_publicado", "publicado",
+        """INSERT OR REPLACE INTO rubricas (modalidad_id, slug, subtipo, plantilla_docx, schema_json)
+           VALUES (?, ?, ?, ?, ?)""",
+        (articulo_id, "articulo_published", "publicado",
          "3.-ANEXO 2 RUBRICA PARA ARTICULO Y CAPITULOS DE LIBROS PUBLICADOS ESCRITO .docx",
          json.dumps(_schema_articulo_publicado(), ensure_ascii=False))
     )
@@ -167,69 +166,24 @@ def _seed_catalogo(conn):
 
 def _schema_tefl():
     return {
-        "escala_total": 10,
-        "tabla_total_idx": 0,  # tabla 0 (Rúbrica general) suma exactamente 10.00 de peso
+        "escala_total": 5,
+        "tabla_total_idx": 0,
         "tablas": [
             {
-                "nombre": "Rúbrica general — Trabajo Escrito",
+                "nombre": "Rúbrica para el Trabajo Escrito",
                 "escala": "peso_si_no",
+                "header_rows": 1,
                 "criterios": [
-                    {"no": 1, "texto": "Presentación\nAnillado\ncarátula\níndice", "peso": 1.00},
-                    {"no": 2, "texto": "Introducción", "peso": 1.00},
-                    {"no": 3, "texto": "Módulo 1\nFMU\nJournal (bibliografía)", "peso": 1.00},
-                    {"no": 4, "texto": "Módulo 2\nSpeaking Lesson Plan (ECRIF)\nAnexos (Actividades para los estudiantes)\nJournal (bibliografía)", "peso": 1.50},
-                    {"no": 5, "texto": "Módulo 3\nListening Lesson Plan (PDP)\nAnexos (Actividades para los estudiantes)\nJournal (bibliografía)", "peso": 1.50},
-                    {"no": 6, "texto": "Módulo 4\nReading Lesson Plan (PDP)\nAnexos (Actividades para los estudiantes)\nJournal (bibliografía)", "peso": 1.50},
-                    {"no": 7, "texto": "Módulo 5\nWriting Lesson Plan (Preparation, Drafting, Revise, Editing, Extension)\nAnexos (Actividades para los estudiantes)\nJournal (bibliografía)", "peso": 1.50},
-                    {"no": 8, "texto": "Conclusiones y Recomendaciones", "peso": 1.00},
+                    {"no": 1, "texto": "Presentación  Anillado carátula índice", "peso": 0.25},
+                    {"no": 2, "texto": "Introducción", "peso": 0.50},
+                    {"no": 3, "texto": "Módulo 1  Journal (bibliografía) FMU", "peso": 0.75},
+                    {"no": 4, "texto": "Módulo 2  Journal (bibliografía) Speaking Lesson Plan (ECRIF) Anexos (Actividades para los estudiantes)", "peso": 0.75},
+                    {"no": 5, "texto": "Módulo 3 Journal (bibliografía) Listening Lesson Plan (PDP) Anexos (Actividades para los estudiantes)", "peso": 0.75},
+                    {"no": 6, "texto": "Módulo 4 Journal (bibliografía) Reading Lesson Plan (PDP) Anexos (Actividades para los estudiantes)", "peso": 0.75},
+                    {"no": 7, "texto": "Módulo 5 Journal (bibliografía) Writing Lesson Plan (Preparation, Drafting, Revise, Editing, Extension) Anexos (Actividades para los estudiantes)", "peso": 0.75},
+                    {"no": 8, "texto": "Conclusiones y Recomendaciones", "peso": 0.50},
                 ],
-            },
-            {
-                "nombre": "Speaking Lesson Plan (ECRIF)",
-                "escala": "peso_si_no",
-                "criterios": [
-                    {"no": 1, "etapa": "EC Stage", "texto": "Students have the opportunity to ENCOUNTER & CLARIFY the target language.", "peso": 1},
-                    {"no": 2, "etapa": "EC Stage", "texto": "The teacher uses CCQs correctly.", "peso": 1},
-                    {"no": 3, "etapa": "RI Stage", "texto": "Students have the opportunity to “REMEMBER & INTERNALIZE” the target language with gradually increasing freedom and decreasing external control/support.", "peso": 1},
-                    {"no": 4, "etapa": "RI Stage", "texto": "The vast majority of time is spent in student-centered activities (when most Ss are actively working simultaneously), with a small minority of time spent in teacher-centered activities (when most Ss are listening to the teacher and/or 1-2 other Ss).", "peso": 1},
-                    {"no": 5, "etapa": "Fluently Use Stage", "texto": "Students have the opportunity to FLUENTLY USE the target language in a spontaneous, real-world, communicative activity.", "peso": 1},
-                    {"no": 6, "etapa": "Time control", "texto": "The teacher manages the progression and timing of activities and monitors Ss so that learning objectives are likely to be achieved (including adjusting the pace or task based on Ss' actions in class).", "peso": 2},
-                    {"no": 7, "etapa": "Teacher Talking Time", "texto": "The teacher speaks only to give instructions and demonstrations.", "peso": 1},
-                    {"no": 8, "etapa": "Teacher Talking Time", "texto": "The teacher gives effective instructions (including managing students' attention, demonstrating, limiting teacher talk, and chunking steps).", "peso": 1},
-                    {"no": 9, "etapa": "Teacher Talking Time", "texto": "The teacher fosters an atmosphere of respect, security, inclusion, and focus on learning, leading by example.", "peso": 1},
-                ],
-            },
-            {
-                "nombre": "PDP Lesson Plan",
-                "escala": "si_no",
-                "criterios": [
-                    {"no": 1, "texto": "45-minute lesson?"},
-                    {"no": 2, "texto": "Action points for the teacher?"},
-                    {"no": 3, "texto": "Objective has (show understanding of, by, and then)?"},
-                    {"no": 4, "texto": "Is the objective related to the activities?"},
-                    {"no": 5, "texto": "Is it described what to observe in each practical activity?"},
-                    {"no": 6, "texto": "Pre-Stage: Engage students with the topic?"},
-                    {"no": 7, "texto": "During Stage: Are the activities connected?"},
-                    {"no": 8, "texto": "Are activities from controlled to less controlled?"},
-                    {"no": 9, "texto": "Is Post Stage free?"},
-                    {"no": 10, "texto": "Present the materials needed?"},
-                ],
-            },
-            {
-                "nombre": "Writing Lesson Plan",
-                "escala": "peso_si_no",
-                "criterios": [
-                    {"no": 1, "etapa": "Preparation Stage", "texto": "Students do any of the following:\nBrainstorm ideas about the topic;\nWrite their reactions to a stimulus.\nWrite about their personal experiences with the topic;\nGenerate an idea map;\nCopy a model;\nWrite a personal journal;\nRead material related to the topic;\nLook up needed words in the dictionary and discuss the topic.", "peso": 1},
-                    {"no": 2, "etapa": "Preparation Stage", "texto": "The teacher uses CCQs correctly.", "peso": 1},
-                    {"no": 3, "etapa": "Drafting/revision/editing Stage", "texto": "Students share drafts and get feedback to help revise the ideas in their piece.\nThe class does specific work on punctuation, sentence combining, transition words, or paragraph organization to edit the work.\nStudents write a first draft; students and/or teacher respond to/critique drafts;\nStudents compare their draft to a model;\nStudents revise their draft based on the critique or model; students edit their drafts.", "peso": 1},
-                    {"no": 4, "etapa": "Drafting/revision/editing Stage", "texto": "The vast majority of time is spent in student-centered activities (when most Ss are actively working at the same time), with a small minority of time spent in teacher-centered activities (when most Ss are listening to the teacher and/or 1-2 other Ss).", "peso": 1},
-                    {"no": 5, "etapa": "Extension Stage", "texto": "Students publish their final drafts and post them for others to read.\nStudents read work out loud.\nStudents share work in a “free reading” format.", "peso": 1},
-                    {"no": 6, "etapa": "Time control", "texto": "The teacher manages the progression and timing of activities and monitors Ss so that learning objectives are likely to be achieved (including adjusting the pace or task based on Ss' actions in class).", "peso": 2},
-                    {"no": 7, "etapa": "Teacher Talking Time", "texto": "The teacher speaks only to give instructions and demonstrations.", "peso": 1},
-                    {"no": 8, "etapa": "Teacher Talking Time", "texto": "The teacher gives effective instructions (including managing students' attention, demonstrating, limiting teacher talk, and chunking steps).", "peso": 1},
-                    {"no": 9, "etapa": "Teacher Talking Time", "texto": "The teacher fosters an atmosphere of respect, security, inclusion, and focus on learning, leading by example.", "peso": 1},
-                ],
-            },
+            }
         ],
     }
 

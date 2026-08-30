@@ -10,6 +10,7 @@ confiable que editar el archivo original celda por celda.
 """
 import io
 import datetime
+import os
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -108,9 +109,24 @@ def generar_informe_docx(evaluacion):
     return buffer
 
 
-# ── Documento 2: Rúbrica (data-driven desde schema_json) ──────────────────
+# ── Documento 2: Rúbrica (data-driven desde plantilla y schema_json) ──────────────────
+
+def obtener_ruta_plantilla(plantilla_nombre):
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    candidatos = [
+        os.path.join(base_dir, plantilla_nombre),
+        os.path.join(base_dir, "resources", plantilla_nombre),
+        os.path.join(base_dir, "Proyecto_Titulacion", "TEFL", plantilla_nombre),
+        os.path.join(base_dir, "Proyecto_Titulacion", "Artifuclo", plantilla_nombre),
+    ]
+    for c in candidatos:
+        if os.path.exists(c):
+            return c
+    raise FileNotFoundError(f"No se encontró la plantilla de rúbrica: {plantilla_nombre}")
+
 
 def generar_rubrica_docx(evaluacion):
+    import os
     rubrica = evaluacion.get('rubrica')
     if not rubrica:
         raise ValueError("La evaluación no tiene una rúbrica asignada.")
@@ -118,90 +134,145 @@ def generar_rubrica_docx(evaluacion):
     indicadores = _indicadores_por_clave(evaluacion.get('indicadores') or [])
     puntaje_total = evaluacion.get('puntaje_total', 0)
 
-    doc = Document()
-    style = doc.styles['Normal']
-    style.font.size = Pt(10.5)
+    # 1. Cargar la plantilla original
+    plantilla_nombre = rubrica['plantilla_docx']
+    ruta_plantilla = obtener_ruta_plantilla(plantilla_nombre)
+    doc = Document(ruta_plantilla)
 
-    titulo = doc.add_paragraph(f"Rúbrica de Evaluación — {evaluacion.get('titulo_trabajo') or ''}")
-    titulo.runs[0].bold = True
-    titulo.runs[0].font.size = Pt(13)
+    # 2. Reemplazar encabezados en los párrafos de texto
+    estudiante = evaluacion.get('estudiante') or ''
+    evaluador = evaluacion.get('evaluador_nombre') or ''
+    fecha_txt = _fecha_larga()
+    tutor = evaluacion.get('tutor') or ''
+    tema = evaluacion.get('titulo_trabajo') or ''
+    escala_total = schema.get('escala_total', 10)
+    puntaje_formateado = f"{puntaje_total:.2f}" if isinstance(puntaje_total, (int, float)) else str(puntaje_total)
 
-    encabezado = doc.add_paragraph()
-    encabezado.add_run(f"Estudiante: {evaluacion.get('estudiante') or ''}\t\t").bold = False
-    encabezado.add_run(f"Evaluador: {evaluacion.get('evaluador_nombre') or ''}")
-    doc.add_paragraph(f"Fecha: {_fecha_larga()}")
-    total_p = doc.add_paragraph()
-    total_p.add_run(f"Calificación Total: {puntaje_total} / {schema.get('escala_total', 10)}").bold = True
+    for p in doc.paragraphs:
+        p_text = p.text
+        if not p_text.strip():
+            continue
 
-    for tabla_idx, tabla in enumerate(schema['tablas']):
-        doc.add_paragraph()
-        encabezado_tabla = doc.add_paragraph(tabla['nombre'])
-        encabezado_tabla.runs[0].bold = True
+        if "Estudiante:" in p_text or "ESTUDIANTE:" in p_text:
+            for run in p.runs:
+                if "_" in run.text:
+                    run.text = " " + estudiante
+                    break
+        elif "Evaluador:" in p_text or "MIEMBRO DEL TRIBUNAL:" in p_text or "Tribunal:" in p_text:
+            for run in p.runs:
+                if "_" in run.text:
+                    run.text = " " + evaluador
+                    break
+        elif "Tutor:" in p_text or "TUTOR:" in p_text:
+            for run in p.runs:
+                if "_" in run.text:
+                    run.text = " " + tutor
+                    break
+        elif "Tema:" in p_text or "TEMA:" in p_text or "TITULO DEL ARTICULO" in p_text:
+            for run in p.runs:
+                if "_" in run.text:
+                    run.text = " " + tema
+                    break
+        elif "Fecha:" in p_text or "FECHA:" in p_text:
+            has_calificacion = "Calificaci" in p_text or "Total" in p_text
+            if has_calificacion:
+                p.text = f"Fecha: {fecha_txt}                 Calificación Total: {puntaje_formateado} / {escala_total}"
+                p.runs[0].bold = True
+            else:
+                for run in p.runs:
+                    if "_" in run.text:
+                        run.text = " " + fecha_txt
+                        break
+        elif "FECHA DE ENTREGA:" in p_text:
+            for run in p.runs:
+                if "_" in run.text:
+                    run.text = " " + fecha_txt
+                    break
 
-        escala = tabla['escala']
-        con_peso = escala in ('peso_si_no', 'niveles_4', 'niveles_especial')
-        columnas = ["Criterio"]
-        if con_peso:
-            columnas.append("Peso")
-        if escala in ('peso_si_no', 'si_no'):
-            columnas += ["YES", "NO"]
-        else:
-            columnas += ["Nivel asignado", "Calificación"]
-        columnas.append("Comentario")
+    # 3. Rellenar las tablas de la plantilla
+    if doc.tables:
+        table = doc.tables[0]
+        tabla_schema = schema['tablas'][0]
+        escala = tabla_schema['escala']
+        header_rows = tabla_schema.get('header_rows', 1)
+        tabla_idx = 0
 
-        docx_tabla = doc.add_table(rows=1, cols=len(columnas))
-        docx_tabla.style = 'Table Grid'
-        for celda, texto in zip(docx_tabla.rows[0].cells, columnas):
-            celda.paragraphs[0].add_run(texto).bold = True
-
-        for criterio_idx, criterio in enumerate(tabla['criterios']):
+        for criterio_idx, criterio in enumerate(tabla_schema['criterios']):
             indicador = indicadores.get((tabla_idx, criterio_idx), {})
-            fila = docx_tabla.add_row()
-            col = 0
+            row_idx = criterio_idx + header_rows
 
-            texto_criterio = criterio['texto']
-            if criterio.get('etapa'):
-                texto_criterio = f"[{criterio['etapa']}] {texto_criterio}"
-            fila.cells[col].text = texto_criterio
-            col += 1
+            if row_idx >= len(table.rows):
+                break
 
-            if con_peso:
-                fila.cells[col].text = str(criterio.get('peso', ''))
-                col += 1
+            row = table.rows[row_idx]
+            respuesta = indicador.get('respuesta')
+            calificacion = indicador.get('calificacion')
+            comentario = indicador.get('comentario') or ''
 
             if escala in ('peso_si_no', 'si_no'):
-                respuesta = indicador.get('respuesta')
-                fila.cells[col].text = 'X' if respuesta == 'YES' else ''
-                fila.cells[col + 1].text = 'X' if respuesta == 'NO' else ''
-                col += 2
-            else:
-                respuesta = indicador.get('respuesta')
-                etiqueta_nivel = ''
-                if escala == 'niveles_4' and respuesta is not None:
-                    nivel = next((n for n in tabla.get('niveles', []) if str(n['pct']) == str(respuesta)), None)
-                    etiqueta_nivel = f"{nivel['label']} ({nivel['pct']}%)" if nivel else respuesta
-                elif escala == 'niveles_especial' and respuesta is not None:
-                    etiqueta_nivel = criterio.get('niveles', {}).get(str(respuesta), respuesta)
-                fila.cells[col].text = etiqueta_nivel
-                col += 1
-                calificacion = indicador.get('calificacion')
-                fila.cells[col].text = str(calificacion) if calificacion is not None else ''
-                col += 1
+                num_cols = len(row.cells)
+                if num_cols >= 6:
+                    # YES (Col 3)
+                    cell_yes = row.cells[3]
+                    cell_yes.text = 'X' if respuesta == 'YES' else ''
+                    cell_yes.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-            fila.cells[col].text = indicador.get('comentario') or ''
+                    # NO (Col 4)
+                    cell_no = row.cells[4]
+                    cell_no.text = 'X' if respuesta == 'NO' else ''
+                    cell_no.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        if tabla_idx != schema.get('tabla_total_idx', 0):
-            subtotal = sum(
-                float(i['calificacion']) for (t_idx, _), i in indicadores.items()
-                if t_idx == tabla_idx and i.get('calificacion') is not None
-            )
-            p = doc.add_paragraph(f"Subtotal: {round(subtotal, 2)}")
-            p.runs[0].bold = True
-            p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                    # Puntaje (Col 5)
+                    cell_score = row.cells[5]
+                    if calificacion is not None:
+                        cell_score.text = f"{calificacion:.2f}"
+                    else:
+                        cell_score.text = ""
+                    cell_score.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    doc.add_paragraph()
-    doc.add_paragraph("_" * 40)
-    doc.add_paragraph("Firma del evaluador/a")
+            elif escala in ('niveles_4', 'niveles_especial'):
+                num_cols = len(row.cells)
+                if num_cols >= 8:
+                    for c in range(2, 6):
+                        row.cells[c].text = ""
+
+                    col_x = None
+                    if respuesta == '0':
+                        col_x = 2
+                    elif respuesta == '35':
+                        col_x = 3
+                    elif respuesta in ('70', '90'):
+                        col_x = 4
+                    elif respuesta == '100':
+                        col_x = 5
+
+                    if col_x is not None:
+                        row.cells[col_x].text = 'X'
+                        row.cells[col_x].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+                    # Calif. (Col 6)
+                    cell_score = row.cells[6]
+                    if calificacion is not None:
+                        cell_score.text = f"{calificacion:.2f}"
+                    else:
+                        cell_score.text = ""
+                    cell_score.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+                    # Comentarios (Col 7)
+                    row.cells[7].text = comentario
+
+        # 4. Rellenar fila de Total
+        for row in table.rows:
+            if len(row.cells) > 0 and row.cells[0].text.strip().upper() in ('TOTAL', 'TOTALES'):
+                num_cols = len(row.cells)
+                if escala in ('peso_si_no', 'si_no') and num_cols >= 6:
+                    cell_total = row.cells[5]
+                    cell_total.text = puntaje_formateado
+                    cell_total.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                elif escala in ('niveles_4', 'niveles_especial') and num_cols >= 7:
+                    cell_total = row.cells[6]
+                    cell_total.text = puntaje_formateado
+                    cell_total.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     buffer = io.BytesIO()
     doc.save(buffer)
