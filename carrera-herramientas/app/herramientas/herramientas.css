@@ -1,0 +1,36 @@
+/* Estilos compartidos de las 5 herramientas de carrera. Autocontenido: se importa
+   solo desde app/herramientas/layout.tsx, no depende de nada fuera de esta carpeta. */
+
+.ht-input {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  border-radius: 0.375rem;
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  background: #fff;
+  color: #0f172a;
+}
+
+.ht-input:focus {
+  outline: 2px solid #003366;
+  outline-offset: 1px;
+}
+
+.ht-input[readonly] {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.ht-btn-primary {
+  border-radius: 0.5rem;
+  background: #003366;
+  color: #fff;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+}
+
+.ht-btn-primary:disabled {
+  opacity: 0.5;
+}
